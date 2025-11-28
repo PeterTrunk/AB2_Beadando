@@ -1,0 +1,13 @@
+CREATE TABLE app_project(
+  id              NUMBER          PRIMARY KEY
+  ,project_name   VARCHAR2(140)   UNIQUE NOT NULL
+  ,proj_key       VARCHAR2(16)    UNIQUE NOT NULL
+  ,description    VARCHAR2(2000)
+  ,owner_id       NUMBER
+  ,is_archived    NUMBER(1)       DEFAULT 0 NOT NULL
+  ,created_at     DATE            DEFAULT SYSDATE NOT NULL
+  ,last_modified  DATE            DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+ALTER TABLE app_project
+CONSTRAINT fk_app_project_owner FOREIGN KEY (owner_id) REFERENCES app_suer(id)

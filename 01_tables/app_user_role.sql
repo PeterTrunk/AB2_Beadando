@@ -1,0 +1,13 @@
+CREATE TABLE app_user_role(
+  user_id      NUMBER
+  ,role_id     NUMBER 
+  ,assigned_at DATE     DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE app_user_role
+      CONSTRAINT pk_app_user_role PRIMARY KEY (user_id, role_id);
+ALTER TABLE app_user_role
+      CONSTRAINT fk_app_user_role_user FOREIGN KEY (user_id) REFERENCES app_user(id);
+ALTER TABLE app_user_role
+      CONSTRAINT fk_app_user_role_role FOREIGN KEY (role_id) REFERENCES app_role(id);

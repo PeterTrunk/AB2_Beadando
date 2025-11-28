@@ -10,5 +10,5 @@ CREATE TABLE app_user(
 TABLESPACE users;
 
 ALTER TABLE app_user
-      ADD CONSTRAINT app_user_pk PRIMARY KEY (id);
+ADD CONSTRAINT app_user_pk PRIMARY KEY (id);
 
