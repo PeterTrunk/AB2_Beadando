@@ -1,0 +1,18 @@
+CREATE TABLE app_comment(
+  id              NUMBER          NOT NULL
+  ,task_id        NUMBER          NOT NULL
+  ,user_id        NUMBER          NOT NULL
+  ,comment_body   VARCHAR2(1024)  NOT NULL
+  ,created_at     DATE            DEFAULT SYSDATE NOT NULL
+  ,edited_at      DATE
+)
+TABLESPACE users;
+
+ALTER TABLE app_comment
+      ADD CONSTRAINT pk_app_comment PRIMARY KEY (id);
+ALTER TABLE app_comment
+      ADD CONSTRAINT fk_app_comment_task FOREIGN KEY (task_id) REFERENCES task(id);
+ALTER TABLE app_comment
+      ADD CONSTRAINT fk_app_comment_app_user FOREIGN KEY (user_id) REFERENCES app_user(id);
+
+

@@ -1,0 +1,23 @@
+CREATE TABLE sprint(
+  id            NUMBER        NOT NULL
+  ,project_id   NUMBER        NOT NULL
+  ,board_id     NUMBER        NOT NULL
+  ,sprint_name  VARCHAR2(64)  NOT NULL
+  ,goal         VARCHAR2(255) NOT NULL
+  ,start_date   DATE          DEFAULT SYSDATE NOT NULL
+  ,end_date     DATE          NOT NULL
+  ,state        VARCHAR2(16)  NOT NULL
+  ,created_at   DATE          DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE sprint
+      ADD CONSTRAINT pk_sprint PRIMARY KEY (id);
+ALTER TABLE sprint
+      ADD CONSTRAINT fk_sprint_project FOREIGN KEY (project_id) REFERENCES app_project(id);
+ALTER TABLE sprint
+      ADD CONSTRAINT fk_sprint_board FOREIGN KEY (board_id) REFERENCES board(id);
+ALTER TABLE sprint
+      ADD CONSTRAINT chk_sprint_dates_valid CHECK (end_date >= start_date);
+ALTER TABLE sprint
+      ADD CONSTRAINT chk_sprint_state CHECK (state IN ('PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED'));

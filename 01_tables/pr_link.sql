@@ -1,0 +1,23 @@
+CREATE TABLE pr_link(
+  id                NUMBER          NOT NULL
+  ,task_id          NUMBER          NOT NULL
+  ,provider         VARCHAR2(16)    NOT NULL
+  ,repo_full_name   VARCHAR2(255)   NOT NULL
+  ,pr_number        NUMBER          NOT NULL
+  ,title            VARCHAR2(255)
+  ,state            VARCHAR2(24)    NOT NULL
+  ,created_at       DATE            DEFAULT SYSDATE NOT NULL
+  ,merged_at        DATE
+)
+TABLESPACE users;
+
+ALTER TABLE pr_link
+      ADD CONSTRAINT pk_pr_link PRIMARY KEY (id);
+ALTER TABLE pr_link
+      ADD CONSTRAINT fk_pr_link_task FOREIGN KEY (task_id) REFERENCES task(id);
+ALTER TABLE pr_link
+      ADD CONSTRAINT uq_pr_link_task_pr UNIQUE (task_id, provider, repo_full_name, pr_number);
+ALTER TABLE pr_link
+      ADD CONSTRAINT chk_pr_link_provider CHECK (provider IN ('GITHUB', 'GITLAB', 'AZURE_DEVOPS'));
+ALTER TABLE pr_link
+      ADD CONSTRAINT chk_pr_link_state CHECK (state IN ('OPEN', 'CLOSED', 'MERGED'));
