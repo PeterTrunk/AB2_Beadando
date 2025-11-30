@@ -12,12 +12,8 @@ id NUMBER NOT NULL
 TABLESPACE users;
 
 ALTER TABLE attachment
-      ADD CONSTRAINT pk_attachment PRIMARY KEY (id);
-ALTER TABLE attachment
-      ADD CONSTRAINT fk_attachment_task FOREIGN KEY (task_id) REFERENCES task(id);
-ALTER TABLE attachment
-      ADD CONSTRAINT fk_attachment_uploaded_by FOREIGN KEY (uploaded_by) REFERENCES app_user(id);
-ALTER TABLE attachment
-      ADD CONSTRAINT chk_attachment_size_positive CHECK (size_bytes > 0);
-ALTER TABLE attachment
-      ADD CONSTRAINT uq_attachment_storage_path UNIQUE (storage_path);
+      ADD CONSTRAINT pk_attachment PRIMARY KEY (id),
+      CONSTRAINT fk_attachment_task FOREIGN KEY (task_id) REFERENCES task(id),
+      CONSTRAINT fk_attachment_uploaded_by FOREIGN KEY (uploaded_by) REFERENCES app_user(id),
+      CONSTRAINT chk_attachment_size_positive CHECK (size_bytes > 0),
+      CONSTRAINT uq_attachment_storage_path UNIQUE (storage_path);

@@ -7,4 +7,4 @@ CREATE TABLE app_role(
 TABLESPACE users;
 
 ALTER TABLE app_role
-      ADD CONSTRAINT pk_app_role PRIMARY KEY (id);
+      CONSTRAINT pk_app_role PRIMARY KEY (id);

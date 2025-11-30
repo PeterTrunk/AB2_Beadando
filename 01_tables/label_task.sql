@@ -5,8 +5,6 @@ CREATE TABLE label_task(
 TABLESPACE users;
 
 ALTER TABLE label_task
-      ADD CONSTRAINT pk_label_task PRIMARY KEY (task_id, label_id);
-ALTER TABLE label_task
-      ADD CONSTRAINT fk_label_task_label_id FOREIGN KEY (label_id) REFERENCES labels(id);  
-ALTER TABLE label_task
-      ADD CONSTRAINT fk_label_task_task_id FOREIGN KEY (task_id) REFERENCES task(id);
+      ADD CONSTRAINT pk_label_task PRIMARY KEY (task_id, label_id),
+      CONSTRAINT fk_label_task_label_id FOREIGN KEY (label_id) REFERENCES labels(id),
+      CONSTRAINT fk_label_task_task_id FOREIGN KEY (task_id) REFERENCES task(id);

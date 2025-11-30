@@ -9,9 +9,7 @@ CREATE TABLE board(
 TABLESPACE users;
 
 ALTER TABLE board
-      ADD CONSTRAINT pk_board PRIMARY KEY (id);
-ALTER TABLE board
-      ADD CONSTRAINT fk_board_project FOREIGN KEY (project_id) REFERENCES app_project(id);
-ALTER TABLE board
-      ADD CONSTRAINT uq_board_name_project UNIQUE (project_id, board_name);
+      ADD CONSTRAINT pk_board PRIMARY KEY (id),
+      CONSTRAINT fk_board_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT uq_board_name_project UNIQUE (project_id, board_name);
 

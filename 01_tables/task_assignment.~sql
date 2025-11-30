@@ -1,7 +1,7 @@
 CREATE TABLE task_assignment(
-task_id NUMBER NOT NULL
-,user_id NUMBER NOT NULL
-,assigned_at DATE DEFAULT SYSDATE NOT NULL
+  task_id       NUMBER  NOT NULL
+  ,user_id      NUMBER  NOT NULL
+  ,assigned_at  DATE    DEFAULT SYSDATE NOT NULL
 )
 TABLESPACE users;
 

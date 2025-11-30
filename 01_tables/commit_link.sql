@@ -11,10 +11,7 @@ CREATE TABLE commit_link(
 TABLESPACE users;
 
 ALTER TABLE commit_link
-      ADD CONSTRAINT pk_commit_link PRIMARY KEY (id);
-ALTER TABLE commit_link
-      ADD CONSTRAINT fk_commit_link_task FOREIGN KEY (task_id) REFERENCES task(id);
-ALTER TABLE commit_link
-      ADD CONSTRAINT uq_commit_link_task_commit UNIQUE (task_id, provider, repo_full_name, commit_sha);
-ALTER TABLE commit_link
-      ADD CONSTRAINT chk_commit_link_provider CHECK (provider IN ('GITHUB', 'GITLAB', 'AZURE_DEVOPS')); 
+      ADD CONSTRAINT pk_commit_link PRIMARY KEY (id),
+      CONSTRAINT fk_commit_link_task FOREIGN KEY (task_id) REFERENCES task(id),
+      CONSTRAINT uq_commit_link_task_commit UNIQUE (task_id, provider, repo_full_name, commit_sha),
+      CONSTRAINT chk_commit_link_provider CHECK (provider IN ('GITHUB', 'GITLAB', 'AZURE_DEVOPS')); 

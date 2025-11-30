@@ -9,10 +9,8 @@ CREATE TABLE app_comment(
 TABLESPACE users;
 
 ALTER TABLE app_comment
-      ADD CONSTRAINT pk_app_comment PRIMARY KEY (id);
-ALTER TABLE app_comment
-      ADD CONSTRAINT fk_app_comment_task FOREIGN KEY (task_id) REFERENCES task(id);
-ALTER TABLE app_comment
-      ADD CONSTRAINT fk_app_comment_app_user FOREIGN KEY (user_id) REFERENCES app_user(id);
+      ADD CONSTRAINT pk_app_comment PRIMARY KEY (id),
+      CONSTRAINT fk_app_comment_task FOREIGN KEY (task_id) REFERENCES task(id),
+      CONSTRAINT fk_app_comment_app_user FOREIGN KEY (user_id) REFERENCES app_user(id);
 
 

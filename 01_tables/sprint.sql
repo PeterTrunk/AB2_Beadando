@@ -12,14 +12,9 @@ CREATE TABLE sprint(
 TABLESPACE users;
 
 ALTER TABLE sprint
-      ADD CONSTRAINT pk_sprint PRIMARY KEY (id);
-ALTER TABLE sprint
-      ADD CONSTRAINT fk_sprint_project FOREIGN KEY (project_id) REFERENCES app_project(id);
-ALTER TABLE sprint
-      ADD CONSTRAINT fk_sprint_board FOREIGN KEY (board_id) REFERENCES board(id);
-ALTER TABLE sprint
-      ADD CONSTRAINT uq_sprint_name_per_project UNIQUE (project_id, sprint_name);
-ALTER TABLE sprint
-      ADD CONSTRAINT chk_sprint_dates_valid CHECK (end_date >= start_date);
-ALTER TABLE sprint
-      ADD CONSTRAINT chk_sprint_state CHECK (state IN ('PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED'));
+      ADD CONSTRAINT pk_sprint PRIMARY KEY (id),
+      CONSTRAINT fk_sprint_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT fk_sprint_board FOREIGN KEY (board_id) REFERENCES board(id),
+      CONSTRAINT uq_sprint_name_per_project UNIQUE (project_id, sprint_name),
+      CONSTRAINT chk_sprint_dates_valid CHECK (end_date >= start_date),
+      CONSTRAINT chk_sprint_state CHECK (state IN ('PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED')),

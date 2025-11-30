@@ -7,6 +7,5 @@ CREATE TABLE labels(
 TABLESPACE users;
 
 ALTER TABLE labels
-      ADD CONSTRAINT pk_labels PRIMARY KEY (id);
-ALTER TABLE labels
-      ADD CONSTRAINT fk_labels_project FOREIGN KEY (project_id) REFERENCES app_project(id);
+      ADD CONSTRAINT pk_labels PRIMARY KEY (id),
+      CONSTRAINT fk_labels_project FOREIGN KEY (project_id) REFERENCES app_project(id);

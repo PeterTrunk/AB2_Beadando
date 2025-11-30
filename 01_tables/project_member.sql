@@ -7,8 +7,6 @@ CREATE TABLE project_member(
 TABLESPACE users;
 
 ALTER TABLE project_member
-      ADD CONSTRAINT pk_project_member PRIMARY KEY (project_id, user_id);
-ALTER TABLE project_member
-      ADD CONSTRAINT fk_project_member_project FOREIGN KEY (project_id) REFERENCES app_project(id);
-ALTER TABLE project_member
-      ADD CONSTRAINT fk_project_member_user FOREIGN KEY (user_id) REFERENCES app_user(id);
+      ADD CONSTRAINT pk_project_member PRIMARY KEY (project_id, user_id),
+      CONSTRAINT fk_project_member_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT fk_project_member_user FOREIGN KEY (user_id) REFERENCES app_user(id);

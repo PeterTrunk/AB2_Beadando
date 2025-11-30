@@ -11,6 +11,5 @@ CREATE TABLE integration(
 TABLESPACE users;
 
 ALTER TABLE integration
-      ADD CONSTRAINT pk_integration PRIMARY KEY (id);
-ALTER TABLE integration
-      ADD CONSTRAINT fk_integration_project FOREIGN KEY (project_id) REFERENCES app_project(id);
+      ADD CONSTRAINT pk_integration PRIMARY KEY (id),
+      CONSTRAINT fk_integration_project FOREIGN KEY (project_id) REFERENCES app_project(id);

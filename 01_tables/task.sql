@@ -19,20 +19,12 @@ CREATE TABLE task(
 TABLESPACE users;
 
 ALTER TABLE task
-      ADD CONSTRAINT pk_task PRIMARY KEY (id);
-ALTER TABLE task
-      ADD CONSTRAINT uq_task_key_per_project UNIQUE (project_id, task_key);
-ALTER TABLE task
-      ADD CONSTRAINT chk_task_priority CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL'));
-ALTER TABLE task
-      ADD CONSTRAINT chk_task_estimated_min CHECK (estimated_min IS NULL OR estimated_min >= 0);
-ALTER TABLE task
-      ADD CONSTRAINT fk_task_project FOREIGN KEY (project_id) REFERENCES app_project(id);
-ALTER TABLE task
-      ADD CONSTRAINT fk_task_board FOREIGN KEY (board_id) REFERENCES board(id);
-ALTER TABLE task
-      ADD CONSTRAINT fk_task_column FOREIGN KEY (column_id) REFERENCES column_def(id);
-ALTER TABLE task
-      ADD CONSTRAINT fk_task_sprint FOREIGN KEY (sprint_id) REFERENCES sprint(id);
-ALTER TABLE task
-      ADD CONSTRAINT fk_task_app_user FOREIGN KEY (created_by) REFERENCES app_user(id);
+      ADD CONSTRAINT pk_task PRIMARY KEY (id),
+      CONSTRAINT uq_task_key_per_project UNIQUE (project_id, task_key),
+      CONSTRAINT chk_task_priority CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+      CONSTRAINT chk_task_estimated_min CHECK (estimated_min IS NULL OR estimated_min >= 0),
+      CONSTRAINT fk_task_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT fk_task_board FOREIGN KEY (board_id) REFERENCES board(id),
+      CONSTRAINT fk_task_column FOREIGN KEY (column_id) REFERENCES column_def(id),
+      CONSTRAINT fk_task_sprint FOREIGN KEY (sprint_id) REFERENCES sprint(id),
+      CONSTRAINT fk_task_app_user FOREIGN KEY (created_by) REFERENCES app_user(id);

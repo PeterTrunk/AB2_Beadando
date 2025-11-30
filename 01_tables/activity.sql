@@ -11,8 +11,6 @@ CREATE TABLE activity(
 TABLESPACE users;
 
 ALTER TABLE activity
-      ADD CONSTRAINT pk_activity PRIMARY KEY (id);
-ALTER TABLE activity
-      ADD CONSTRAINT fk_activity_project FOREIGN KEY (project_id) REFERENCES app_project(id);
-ALTER TABLE activity
-      ADD CONSTRAINT fk_activity_user FOREIGN KEY (actor_id) REFERENCES app_user(id);
+      ADD CONSTRAINT pk_activity PRIMARY KEY (id),
+      CONSTRAINT fk_activity_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT fk_activity_user FOREIGN KEY (actor_id) REFERENCES app_user(id);

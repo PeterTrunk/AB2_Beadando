@@ -6,11 +6,9 @@ CREATE TABLE task_assignment(
 TABLESPACE users;
 
 ALTER TABLE task_assignment
-      ADD CONSTRAINT pk_task_assignment PRIMARY KEY (task_id, user_id);
-ALTER TABLE task_assignment
-      ADD CONSTRAINT fk_task_assignment_task FOREIGN KEY (task_id) REFERENCES task(id);
-ALTER TABLE task_assignment
-      ADD CONSTRAINT fk_task_assignment_user FOREIGN KEY (user_id) REFERENCES app_user(id);
+      ADD CONSTRAINT pk_task_assignment PRIMARY KEY (task_id, user_id),
+      CONSTRAINT fk_task_assignment_task FOREIGN KEY (task_id) REFERENCES task(id),
+      CONSTRAINT fk_task_assignment_user FOREIGN KEY (user_id) REFERENCES app_user(id);
 
 
 

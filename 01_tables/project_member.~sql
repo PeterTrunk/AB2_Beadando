@@ -1,8 +1,8 @@
 CREATE TABLE project_member(
-  project_id NUMBER NOT NULL
-  ,user_id NUMBER NOT NULL
+  project_id    NUMBER        NOT NULL
+  ,user_id      NUMBER        NOT NULL
   ,project_role VARCHAR2(32)
-  ,joined_at DATE DEFAULT SYSDATE NOT NULL
+  ,joined_at    DATE          DEFAULT SYSDATE NOT NULL
 )
 TABLESPACE users;
 
