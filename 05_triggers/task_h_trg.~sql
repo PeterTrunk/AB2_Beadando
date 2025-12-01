@@ -1,0 +1,90 @@
+CREATE OR REPLACE TRIGGER task_h_trg
+  AFTER DELETE OR UPDATE OR INSERT ON task
+  FOR EACH ROW
+BEGIN
+  IF deleting
+  THEN
+    INSERT INTO task_h
+      (id
+      ,task_id
+      ,changed_at
+      ,dml_flag
+      ,project_id
+      ,board_id
+      ,column_id
+      ,sprint_id
+      ,task_key
+      ,title
+      ,description
+      ,status
+      ,priority
+      ,estimated_min
+      ,due_date
+      ,created_by
+      ,created_at
+      ,updated_at
+      ,closed_at)
+    VALUES
+      (task_history_seq.nextval
+      ,:old.id
+      ,SYSDATE
+      ,'D'
+      ,:old.project_id
+      ,:old.board_id
+      ,:old.column_id
+      ,:old.sprint_id
+      ,:old.task_key
+      ,:old.title
+      ,:old.description
+      ,:old.status
+      ,:old.priority
+      ,:old.estimated_min
+      ,:old.due_date
+      ,:old.created_by
+      ,:old.created_at
+      ,:old.updated_at
+      ,:old.closed_at);
+  ELSE
+    INSERT INTO task_h
+      (id
+      ,task_id
+      ,changed_at
+      ,dml_flag
+      ,project_id
+      ,board_id
+      ,column_id
+      ,sprint_id
+      ,task_key
+      ,title
+      ,description
+      ,status
+      ,priority
+      ,estimated_min
+      ,due_date
+      ,created_by
+      ,created_at
+      ,updated_at
+      ,closed_at)
+    VALUES
+      (task_h_seq.nextval
+      ,:new.id
+      ,SYSDATE
+      ,:new.dml_flag
+      ,:new.project_id
+      ,:new.board_id
+      ,:new.column_id
+      ,:new.sprint_id
+      ,:new.task_key
+      ,:new.title
+      ,:new.description
+      ,:new.status
+      ,:new.priority
+      ,:new.estimated_min
+      ,:new.due_date
+      ,:new.created_by
+      ,:new.created_at
+      ,:new.updated_at
+      ,:new.closed_at);
+  END IF;
+END;
+/
