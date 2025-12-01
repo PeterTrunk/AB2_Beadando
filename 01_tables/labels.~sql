@@ -9,3 +9,11 @@ TABLESPACE users;
 ALTER TABLE labels
       ADD CONSTRAINT pk_labels PRIMARY KEY (id),
       CONSTRAINT fk_labels_project FOREIGN KEY (project_id) REFERENCES app_project(id);
+
+CREATE SEQUENCE labels_seq START WITH 1;
+
+COMMENT ON TABLE labels IS
+  'Feladatok kategorizálására szolgáló címkék egy projekten belül.';
+
+COMMENT ON COLUMN labels.color IS
+  'Címke színe hex formátumban (#RRGGBB).';

@@ -18,3 +18,8 @@ ALTER TABLE sprint
       CONSTRAINT uq_sprint_name_per_project UNIQUE (project_id, sprint_name),
       CONSTRAINT chk_sprint_dates_valid CHECK (end_date >= start_date),
       CONSTRAINT chk_sprint_state CHECK (state IN ('PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED')),
+
+CREATE SEQUENCE sprint_seq START WITH 1;
+
+COMMENT ON TABLE sprint IS
+  'Idõszakos fejlesztési ciklus (Scrum sprint), státuszkezeléssel.';

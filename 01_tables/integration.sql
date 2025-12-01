@@ -11,5 +11,10 @@ CREATE TABLE integration(
 TABLESPACE users;
 
 ALTER TABLE integration
-      ADD CONSTRAINT pk_integration PRIMARY KEY (id),
-      CONSTRAINT fk_integration_project FOREIGN KEY (project_id) REFERENCES app_project(id);
+      ADD (CONSTRAINT pk_integration PRIMARY KEY (id),
+      CONSTRAINT fk_integration_project FOREIGN KEY (project_id) REFERENCES app_project(id));
+
+CREATE SEQUENCE integration_seq START WITH 1;
+
+COMMENT ON TABLE integration IS
+  'Projekt - külsõ rendszer (GitHub, GitLab) integráció beállításai.';

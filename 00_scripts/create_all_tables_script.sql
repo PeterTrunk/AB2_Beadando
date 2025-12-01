@@ -1,15 +1,16 @@
 -- Close PMA_MANAGER user sessions --
 
-declare
-  cursor cur is
-    select 'alter system kill session ''' || sid || ',' || serial# || '''' as command
-      from v$session
-     where username = 'PMA_MANAGER';
-begin
-  for c in cur loop
+DECLARE
+  CURSOR cur IS
+    SELECT 'alter system kill session ''' || sid || ',' || serial# || '''' AS command
+      FROM v$session
+     WHERE username = 'PMA_MANAGER';
+BEGIN
+  FOR c IN cur
+  LOOP
     EXECUTE IMMEDIATE c.command;
-  end loop;
-end;
+  END LOOP;
+END;
 /
 
 DECLARE

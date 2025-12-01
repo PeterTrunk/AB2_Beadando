@@ -1,9 +1,14 @@
 CREATE TABLE project_counter(
-project_id NUMBER NOT NULL
-,last_num NUMBER NOT NULL
+  project_id  NUMBER  NOT NULL
+  ,last_num   NUMBER  NOT NULL
 )
 TABLESPACE users;
 
 ALTER TABLE project_counter
-      ADD CONSTRAINT pk_project_counter PRIMARY KEY (project_id),
-      CONSTRAINT fk_project_counter_project FOREIGN KEY (project_id) REFERENCES app_project(id);
+      ADD (CONSTRAINT pk_project_counter PRIMARY KEY (project_id),
+      CONSTRAINT fk_project_counter_project FOREIGN KEY (project_id) REFERENCES app_project(id));
+
+COMMENT ON TABLE project_counter IS
+  'Projekt szintû folyamatos számláló (task_key generálás támogatására).
+  Fontos mert ezt szerintem szekvenciákkal annyira nem lehetne megoldani mert,
+  minden projekt-ben elölröl akarjuk számolni a taskok sorszámát (nem az anonisító id-t)';

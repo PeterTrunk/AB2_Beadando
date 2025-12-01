@@ -12,8 +12,13 @@ CREATE TABLE attachment(
 TABLESPACE users;
 
 ALTER TABLE attachment
-      ADD CONSTRAINT pk_attachment PRIMARY KEY (id),
+      ADD (CONSTRAINT pk_attachment PRIMARY KEY (id),
       CONSTRAINT fk_attachment_task FOREIGN KEY (task_id) REFERENCES task(id),
       CONSTRAINT fk_attachment_uploaded_by FOREIGN KEY (uploaded_by) REFERENCES app_user(id),
       CONSTRAINT chk_attachment_size_positive CHECK (size_bytes > 0),
-      CONSTRAINT uq_attachment_storage_path UNIQUE (storage_path);
+      CONSTRAINT uq_attachment_storage_path UNIQUE (storage_path));
+      
+CREATE SEQUENCE attachment_seq START WITH 1;
+
+COMMENT ON TABLE attachment IS
+  'Feladatokhoz csatolt fájlok és tárolási információik.';

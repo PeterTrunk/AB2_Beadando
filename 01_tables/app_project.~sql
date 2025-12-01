@@ -12,3 +12,11 @@ TABLESPACE users;
 
 ALTER TABLE app_project
       ADD CONSTRAINT fk_app_project_owner FOREIGN KEY (owner_id) REFERENCES app_suer(id);
+
+CREATE SEQUENCE actvivity_seq START WITH 1;
+
+COMMENT ON TABLE app_project IS
+  'Projekt entitás: feladatok és boardok szervezése.';
+
+COMMENT ON COLUMN app_project.proj_key IS 'Projekt kulcs, pl: PMA, amelybõl a task azonosítók képzõdnek. (pl: PMA-100)';
+COMMENT ON COLUMN app_project.is_archived IS 'Archivált-e a projekt, akkor amikor vége van.';

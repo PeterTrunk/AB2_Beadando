@@ -9,7 +9,11 @@ CREATE TABLE board(
 TABLESPACE users;
 
 ALTER TABLE board
-      ADD CONSTRAINT pk_board PRIMARY KEY (id),
+      ADD (CONSTRAINT pk_board PRIMARY KEY (id),
       CONSTRAINT fk_board_project FOREIGN KEY (project_id) REFERENCES app_project(id),
-      CONSTRAINT uq_board_name_project UNIQUE (project_id, board_name);
+      CONSTRAINT uq_board_name_project UNIQUE (project_id, board_name));
+      
+CREATE SEQUENCE board_seq START WITH 1;
 
+COMMENT ON TABLE board IS
+  'Kanban board, amely egy projekt oszlopait és vizuális felépítését adja.';

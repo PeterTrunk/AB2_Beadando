@@ -13,4 +13,8 @@ ALTER TABLE app_comment
       CONSTRAINT fk_app_comment_task FOREIGN KEY (task_id) REFERENCES task(id),
       CONSTRAINT fk_app_comment_app_user FOREIGN KEY (user_id) REFERENCES app_user(id);
 
+CREATE SEQUENCE app_comment_seq START WITH 1;
+
+COMMENT ON TABLE app_comment IS
+  'Kommentek feladatokhoz.';
 

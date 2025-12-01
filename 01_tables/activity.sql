@@ -11,6 +11,19 @@ CREATE TABLE activity(
 TABLESPACE users;
 
 ALTER TABLE activity
-      ADD CONSTRAINT pk_activity PRIMARY KEY (id),
+      ADD (CONSTRAINT pk_activity PRIMARY KEY (id),
       CONSTRAINT fk_activity_project FOREIGN KEY (project_id) REFERENCES app_project(id),
-      CONSTRAINT fk_activity_user FOREIGN KEY (actor_id) REFERENCES app_user(id);
+      CONSTRAINT fk_activity_user FOREIGN KEY (actor_id) REFERENCES app_user(id));
+
+CREATE SEQUENCE actvivity_seq START WITH 1;
+
+COMMENT ON TABLE activity IS
+  'Felhasználói események naplózása: KI MIT, MIKOR, MIT módosított / hozzáadott / létrehozott. 
+  Olyan napló amit a felhasználók is látnak a UI-on, 
+  hogy tudják hogy milyen események történtek a közelmultban.';
+
+COMMENT ON COLUMN activity.entity_type IS 'Érintett entitás típusa (TASK, COMMENT, PR, stb).';
+COMMENT ON COLUMN activity.entity_id IS 'Érintett entitás azonosítója.';
+COMMENT ON COLUMN activity.action IS 'A végrehajtott mûvelet.';
+
+

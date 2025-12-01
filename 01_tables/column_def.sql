@@ -9,9 +9,17 @@ CREATE TABLE column_def(
 TABLESPACE users;
 
 ALTER TABLE column_def
-      ADD CONSTRAINT pk_column_def PRIMARY KEY (id),
-      ADD CONSTRAINT fk_column_def_board FOREIGN KEY (board_id) REFERENCES board(id),
-      ADD CONSTRAINT uq_column_def_name_per_board UNIQUE (board_id, column_name),
-      ADD CONSTRAINT uq_column_def_pos_per_board UNIQUE (board_id, position),
-      ADD CONSTRAINT chk_column_def_wip_positive CHECK (wip_limit > 0),
-      ADD CONSTRAINT uq_column_def_status_per_board UNIQUE (board_id, status_of_task);
+      ADD (CONSTRAINT pk_column_def PRIMARY KEY (id),
+      CONSTRAINT fk_column_def_board FOREIGN KEY (board_id) REFERENCES board(id),
+      CONSTRAINT uq_column_def_name_per_board UNIQUE (board_id, column_name),
+      CONSTRAINT uq_column_def_pos_per_board UNIQUE (board_id, position),
+      CONSTRAINT chk_column_def_wip_positive CHECK (wip_limit > 0),
+      CONSTRAINT uq_column_def_status_per_board UNIQUE (board_id, status_of_task));
+
+CREATE SEQUENCE column_def_seq START WITH 1;
+
+COMMENT ON TABLE column_def IS
+  'Board oszlopok definíciója, WIP limitek, pozíció és kapcsolt státusz.';
+
+COMMENT ON COLUMN column_def.status_of_task IS
+  'Az oszlophoz tartozó feladat státusz (dinamikus mapping a workflow-hoz).';

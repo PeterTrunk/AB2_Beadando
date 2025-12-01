@@ -19,7 +19,7 @@ CREATE TABLE task(
 TABLESPACE users;
 
 ALTER TABLE task
-      ADD CONSTRAINT pk_task PRIMARY KEY (id),
+      ADD (CONSTRAINT pk_task PRIMARY KEY (id),
       CONSTRAINT uq_task_key_per_project UNIQUE (project_id, task_key),
       CONSTRAINT chk_task_priority CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
       CONSTRAINT chk_task_estimated_min CHECK (estimated_min IS NULL OR estimated_min >= 0),
@@ -27,4 +27,15 @@ ALTER TABLE task
       CONSTRAINT fk_task_board FOREIGN KEY (board_id) REFERENCES board(id),
       CONSTRAINT fk_task_column FOREIGN KEY (column_id) REFERENCES column_def(id),
       CONSTRAINT fk_task_sprint FOREIGN KEY (sprint_id) REFERENCES sprint(id),
-      CONSTRAINT fk_task_app_user FOREIGN KEY (created_by) REFERENCES app_user(id);
+      CONSTRAINT fk_task_app_user FOREIGN KEY (created_by) REFERENCES app_user(id));
+     
+CREATE SEQUENCE task_seq START WITH 100;
+ 
+COMMENT ON TABLE task IS
+  'Feladat (issue, user story, bug): scrum/kaban projekt alap egysége.';
+
+COMMENT ON COLUMN task.task_key IS 'Feladat kulcs (pl. PMA-12).';
+COMMENT ON COLUMN task.status IS 'Feladat állapota (pl. TODO, IN_PROGRESS, DONE).';
+COMMENT ON COLUMN task.created_by IS 'Létrehozó felhasználó azonosítója.';
+COMMENT ON COLUMN task.closed_at IS 'Lezárás idõpontja, ha van.';
+

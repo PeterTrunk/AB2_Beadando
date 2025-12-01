@@ -7,4 +7,12 @@ CREATE TABLE app_role(
 TABLESPACE users;
 
 ALTER TABLE app_role
-      CONSTRAINT pk_app_role PRIMARY KEY (id);
+      ADD (CONSTRAINT pk_app_role PRIMARY KEY (id);
+      CONSTRAINT pk_app_role PRIMARY KEY (id));
+
+CREATE SEQUENCE app_role_seq START WITH 1;
+
+COMMENT ON TABLE app_role IS
+  'Felhasználói szerepkörök (jogkörök csoportosítása).';
+
+COMMENT ON COLUMN app_role.role_name IS 'Szerepkör neve, egyedi.';

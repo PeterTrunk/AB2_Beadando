@@ -9,8 +9,12 @@ CREATE TABLE app_comment(
 TABLESPACE users;
 
 ALTER TABLE app_comment
-      ADD CONSTRAINT pk_app_comment PRIMARY KEY (id),
+      ADD (CONSTRAINT pk_app_comment PRIMARY KEY (id),
       CONSTRAINT fk_app_comment_task FOREIGN KEY (task_id) REFERENCES task(id),
-      CONSTRAINT fk_app_comment_app_user FOREIGN KEY (user_id) REFERENCES app_user(id);
+      CONSTRAINT fk_app_comment_app_user FOREIGN KEY (user_id) REFERENCES app_user(id));
 
+CREATE SEQUENCE app_comment_seq START WITH 1;
+
+COMMENT ON TABLE app_comment IS
+  'Kommentek feladatokhoz.';
 

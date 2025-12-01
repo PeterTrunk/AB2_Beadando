@@ -11,7 +11,13 @@ CREATE TABLE commit_link(
 TABLESPACE users;
 
 ALTER TABLE commit_link
-      ADD CONSTRAINT pk_commit_link PRIMARY KEY (id),
+      ADD (CONSTRAINT pk_commit_link PRIMARY KEY (id),
       CONSTRAINT fk_commit_link_task FOREIGN KEY (task_id) REFERENCES task(id),
       CONSTRAINT uq_commit_link_task_commit UNIQUE (task_id, provider, repo_full_name, commit_sha),
-      CONSTRAINT chk_commit_link_provider CHECK (provider IN ('GITHUB', 'GITLAB', 'AZURE_DEVOPS')); 
+      CONSTRAINT chk_commit_link_provider CHECK (provider IN ('GITHUB', 'GITLAB', 'AZURE_DEVOPS'))); 
+
+CREATE SEQUENCE commit_link_seq START WITH 1;
+
+COMMENT ON TABLE commit_link IS
+  'Commit hivatkozások (repo, provider, SHA) taskokhoz kapcsolva. 
+  pl: Ha egy taskhoz kapcsolódó commit jött egy taskra, akkor az megjelenjen a task-nál';
