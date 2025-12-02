@@ -1,23 +1,23 @@
 CREATE TABLE task_h(
-  id            NUMBER         NOT NULL,
-  task_id       NUMBER         NOT NULL,
-  changed_at    DATE           DEFAULT SYSDATE NOT NULL,
+  id              NUMBER        NOT NULL
+  ,project_id     NUMBER        NOT NULL
+  ,board_id       NUMBER        NOT NULL
+  ,column_id      NUMBER        NOT NULL
+  ,sprint_id      NUMBER        NOT NULL
+  ,task_key       VARCHAR2(32)  NOT NULL
+  ,title          VARCHAR2(128) NOT NULL
+  ,description    VARCHAR2(512)
+  ,status_id      NUMBER        NOT NULL
+  ,priority       VARCHAR2(32)
+  ,estimated_min  NUMBER
+  ,due_date       DATE
+  ,position       NUMBER        NOT NULL
+  ,created_by     NUMBER        NOT NULL
+  ,created_at     DATE          DEFAULT SYSDATE NOT NULL
+  ,updated_at     DATE
+  ,closed_at      DATE
   dml_flag      VARCHAR2(1)    NOT NULL,
-  project_id    NUMBER,
-  board_id      NUMBER,
-  column_id     NUMBER,
-  sprint_id     NUMBER,
-  task_key      VARCHAR2(32),
-  title         VARCHAR2(128),
-  description   VARCHAR2(512),
-  status        VARCHAR2(32),
-  priority      VARCHAR2(32),
-  estimated_min NUMBER,
-  due_date      DATE,
-  created_by    NUMBER,
-  created_at    DATE,
-  updated_at    DATE,
-  closed_at     DATE
+  last_modified DATE           DEFAULT SYSDATE NOT NULL
 )
 TABLESPACE users;
 

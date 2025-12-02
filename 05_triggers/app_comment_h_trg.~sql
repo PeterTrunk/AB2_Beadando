@@ -6,45 +6,44 @@ BEGIN
   THEN
     INSERT INTO app_comment_h
       (id
-      ,comment_id
-      ,changed_at
-      ,dml_flag
       ,task_id
       ,user_id
       ,comment_body
       ,created_at
-      ,edited_at)
+      ,mod_user
+      ,dml_flag
+      ,last_modified
+      ,version)
     VALUES
-      (app_comment_history_seq.nextval
-      ,:old.id
-      ,SYSDATE
-      ,'D'
+      (:old.id
       ,:old.task_id
       ,:old.user_id
       ,:old.comment_body
       ,:old.created_at
-      ,:old.edited_at);
+      ,sys_context('USERENV', 'OS_USER')
+      ,'D'
+      ,SYSDATE
+      ,:old.version + 1);
   ELSE
     INSERT INTO app_comment_h
       (id
-      ,comment_id
-      ,changed_at
-      ,dml_flag
       ,task_id
       ,user_id
       ,comment_body
       ,created_at
-      ,edited_at)
+      ,mod_user
+      ,dml_flag
+      ,last_modified
+      ,version)
     VALUES
-      (app_comment_h_seq.nextval
-      ,:new.id
-      ,SYSDATE
-      ,:new.dml_flag
+      (:new.id
       ,:new.task_id
       ,:new.user_id
       ,:new.comment_body
       ,:new.created_at
-      ,:new.edited_at);
+      ,:new.mod_user
+      ,:new.dml_flag
+      ,:new.edited_at
+      ,:new.version);
   END IF;
 END;
-/

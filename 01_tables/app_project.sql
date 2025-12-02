@@ -6,7 +6,8 @@ CREATE TABLE app_project(
   ,owner_id       NUMBER
   ,is_archived    NUMBER(1)       DEFAULT 0 NOT NULL
   ,created_at     DATE            DEFAULT SYSDATE NOT NULL
-  ,last_modified  DATE            DEFAULT SYSDATE NOT NULL
+  ,dml_flag      VARCHAR2(1)    NOT NULL,
+  ,last_modified DATE           DEFAULT SYSDATE NOT NULL
 )
 TABLESPACE users;
 
