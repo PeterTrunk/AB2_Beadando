@@ -48,12 +48,22 @@ CREATE TABLE app_user(
   ,password_hash  VARCHAR2(255)
   ,is_active      number(1)       DEFAULT 0 NOT NULL
   ,created_at     DATE            DEFAULT SYSDATE NOT NULL
-  ,last_modified  DATE            DEFAULT SYSDATE NOT NULL
 )
 TABLESPACE users;
 
 ALTER TABLE app_user
       ADD CONSTRAINT app_user_pk PRIMARY KEY (id);
+      
+CREATE SEQUENCE app_user_seq START WITH 100;
+
+COMMENT ON TABLE app_user IS
+  'Felhasználói tábla: bejelentkezési adatok, alap profil információk.';
+
+COMMENT ON COLUMN app_user.id IS 'Egyedi felhasználó azonosító.';
+COMMENT ON COLUMN app_user.email IS 'E-mail cím, egyedi, belépéshez használt.';
+COMMENT ON COLUMN app_user.display_name IS 'Felhasználó megjelenített neve.';
+COMMENT ON COLUMN app_user.password_hash IS 'Titkosított jelszó.';
+COMMENT ON COLUMN app_user.is_active IS 'Aktivitási státusz.';
 
 CREATE TABLE app_role(
   id           NUMBER         NOT NULL
@@ -65,21 +75,36 @@ TABLESPACE users;
 
 ALTER TABLE app_role
       ADD CONSTRAINT pk_app_role PRIMARY KEY (id);
-      
+
+CREATE SEQUENCE app_role_seq START WITH 1;
+
+COMMENT ON TABLE app_role IS
+  'Felhasználói szerepkörök (jogkörök csoportosítása).';
+
+COMMENT ON COLUMN app_role.role_name IS 'Szerepkör neve, egyedi.';
+
 CREATE TABLE app_project(
   id              NUMBER          PRIMARY KEY
   ,project_name   VARCHAR2(140)   UNIQUE NOT NULL
   ,proj_key       VARCHAR2(16)    UNIQUE NOT NULL
+  ,task_seq_name  VARCHAR2(30)    
   ,description    VARCHAR2(2000)
   ,owner_id       NUMBER
   ,is_archived    NUMBER(1)       DEFAULT 0 NOT NULL
   ,created_at     DATE            DEFAULT SYSDATE NOT NULL
-  ,last_modified  DATE            DEFAULT SYSDATE NOT NULL
 )
 TABLESPACE users;
 
 ALTER TABLE app_project
       ADD CONSTRAINT fk_app_project_owner FOREIGN KEY (owner_id) REFERENCES app_user(id);
+
+CREATE SEQUENCE app_project_seq START WITH 1;
+
+COMMENT ON TABLE app_project IS
+  'Projekt entitás: feladatok és boardok szervezése.';
+
+COMMENT ON COLUMN app_project.proj_key IS 'Projekt kulcs, pl: PMA, amelybõl a task azonosítók képzõdnek. (pl: PMA-100)';
+COMMENT ON COLUMN app_project.is_archived IS 'Archivált-e a projekt, akkor amikor vége van.';
 
 CREATE TABLE app_user_role(
   user_id      NUMBER
@@ -92,6 +117,11 @@ ALTER TABLE app_user_role
       ADD (CONSTRAINT pk_app_user_role PRIMARY KEY (user_id, role_id),
       CONSTRAINT fk_app_user_role_user FOREIGN KEY (user_id) REFERENCES app_user(id),
       CONSTRAINT fk_app_user_role_role FOREIGN KEY (role_id) REFERENCES app_role(id));
+
+CREATE SEQUENCE app_user_role_seq START WITH 1;
+
+COMMENT ON TABLE app_user_role IS
+  'Felhasználó - szerepkör hozzárendelések.';
 
 CREATE TABLE project_member(
   project_id    NUMBER        NOT NULL
@@ -106,7 +136,12 @@ ALTER TABLE project_member
       CONSTRAINT fk_project_member_project FOREIGN KEY (project_id) REFERENCES app_project(id),
       CONSTRAINT fk_project_member_user FOREIGN KEY (user_id) REFERENCES app_user(id));
 
-CREATE TABLE activity(
+COMMENT ON TABLE project_member IS
+  'Projekt - felhasználó hozzárendelések a csapattagság kezeléséhez.';
+
+COMMENT ON COLUMN project_member.project_role IS 'Felhasználó projektbeli szerepe (pl. fejlesztõ, reviewer, projekt manager, stb).';
+
+CREATE TABLE app_activity(
   id            NUMBER        NOT NULL
   ,project_id   NUMBER        NOT NULL
   ,actor_id     NUMBER        NOT NULL
@@ -118,10 +153,21 @@ CREATE TABLE activity(
 )
 TABLESPACE users;
 
-ALTER TABLE activity
-      ADD (CONSTRAINT pk_activity PRIMARY KEY (id),
-      CONSTRAINT fk_activity_project FOREIGN KEY (project_id) REFERENCES app_project(id),
-      CONSTRAINT fk_activity_user FOREIGN KEY (actor_id) REFERENCES app_user(id));
+ALTER TABLE app_activity
+      ADD (CONSTRAINT pk_app_activity PRIMARY KEY (id),
+      CONSTRAINT fk_app_activity_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT fk_app_activity_user FOREIGN KEY (actor_id) REFERENCES app_user(id));
+
+CREATE SEQUENCE app_activity_seq START WITH 1;
+
+COMMENT ON TABLE app_activity IS
+  'Felhasználói események naplózása: KI MIT, MIKOR, MIT módosított / hozzáadott / létrehozott. 
+  Olyan napló amit a felhasználók is látnak a UI-on, 
+  hogy tudják hogy milyen események történtek a közelmultban.';
+
+COMMENT ON COLUMN app_activity.entity_type IS 'Érintett entitás típusa (TASK, COMMENT, PR, stb).';
+COMMENT ON COLUMN app_activity.entity_id IS 'Érintett entitás azonosítója.';
+COMMENT ON COLUMN app_activity.action IS 'A végrehajtott mûvelet.';
 
 CREATE TABLE labels(
   id          NUMBER        NOT NULL
@@ -135,6 +181,14 @@ ALTER TABLE labels
       ADD (CONSTRAINT pk_labels PRIMARY KEY (id),
       CONSTRAINT fk_labels_project FOREIGN KEY (project_id) REFERENCES app_project(id));
 
+CREATE SEQUENCE labels_seq START WITH 1;
+
+COMMENT ON TABLE labels IS
+  'Feladatok kategorizálására szolgáló címkék egy projekten belül.';
+
+COMMENT ON COLUMN labels.color IS
+  'Címke színe hex formátumban (#RRGGBB).';
+
 CREATE TABLE board(
   id            NUMBER        NOT NULL
   ,project_id   NUMBER        NOT NULL
@@ -146,9 +200,36 @@ CREATE TABLE board(
 TABLESPACE users;
 
 ALTER TABLE board
-      ADD (CONSTRAINT pk_board PRIMARY KEY (id),
+      ADD(
+      CONSTRAINT pk_board PRIMARY KEY (id),
       CONSTRAINT fk_board_project FOREIGN KEY (project_id) REFERENCES app_project(id),
-      CONSTRAINT uq_board_name_project UNIQUE (project_id, board_name));
+      CONSTRAINT uq_board_name_project UNIQUE (project_id, board_name)
+      );
+      
+CREATE SEQUENCE board_seq START WITH 1;
+
+COMMENT ON TABLE board IS
+  'Kanban board, amely egy projekt oszlopait és vizuális felépítését adja.';
+  
+CREATE TABLE task_status (
+  id          NUMBER        NOT NULL,
+  code        VARCHAR2(32)  NOT NULL,    -- pl. 'INBACKLOG' 'TODO', 'WIP', 'REVIEW', 'DONE'
+  name        VARCHAR2(64)  NOT NULL,    -- pl. 'In Backlog' 'To-Do', 'Work in progress'
+  description VARCHAR2(512),
+  is_final    NUMBER(1)     DEFAULT 0 NOT NULL,  -- 0 = nem lezárt, 1 = lezárt
+  position    NUMBER        NOT NULL            -- sorrend riportokhoz / listákhoz
+)
+TABLESPACE users;
+
+ALTER TABLE task_status
+  ADD (
+    CONSTRAINT pk_task_status PRIMARY KEY (id),
+    CONSTRAINT uq_task_status_code UNIQUE (code),
+    CONSTRAINT chk_task_status_is_final CHECK (is_final IN (0,1))
+  );
+
+CREATE SEQUENCE task_status_seq START WITH 1;
+
 
 CREATE TABLE integration(
   id              NUMBER          NOT NULL
@@ -166,33 +247,36 @@ ALTER TABLE integration
       ADD (CONSTRAINT pk_integration PRIMARY KEY (id),
       CONSTRAINT fk_integration_project FOREIGN KEY (project_id) REFERENCES app_project(id));
 
-CREATE TABLE project_counter(
-project_id NUMBER NOT NULL
-,last_num NUMBER NOT NULL
-)
-TABLESPACE users;
+CREATE SEQUENCE integration_seq START WITH 1;
 
-ALTER TABLE project_counter
-      ADD (CONSTRAINT pk_project_counter PRIMARY KEY (project_id),
-      CONSTRAINT fk_project_counter_project FOREIGN KEY (project_id) REFERENCES app_project(id));
-
+COMMENT ON TABLE integration IS
+  'Projekt - külsõ rendszer (GitHub, GitLab) integráció beállításai.';
+  
 CREATE TABLE column_def(
   id                NUMBER        NOT NULL
   ,board_id         NUMBER        NOT NULL
   ,column_name      VARCHAR2(64)  NOT NULL
-  ,wip_limit        NUMBER        NOT NULL
+  ,wip_limit        NUMBER
   ,position         NUMBER        NOT NULL
-  ,status_of_task   VARCHAR2(32)  NOT NULL
+  ,status_id        NUMBER
 )
 TABLESPACE users;
 
 ALTER TABLE column_def
-      ADD (CONSTRAINT pk_column_def PRIMARY KEY (id),
+   ADD(
+      CONSTRAINT pk_column_def PRIMARY KEY (id),
       CONSTRAINT fk_column_def_board FOREIGN KEY (board_id) REFERENCES board(id),
       CONSTRAINT uq_column_def_name_per_board UNIQUE (board_id, column_name),
       CONSTRAINT uq_column_def_pos_per_board UNIQUE (board_id, position),
       CONSTRAINT chk_column_def_wip_positive CHECK (wip_limit > 0),
-      CONSTRAINT uq_column_def_status_per_board UNIQUE (board_id, status_of_task));
+      CONSTRAINT uq_column_def_status_per_board UNIQUE (board_id, status_id),
+      CONSTRAINT fk_column_def_status FOREIGN KEY (status_id) REFERENCES task_status(id)
+   );
+
+CREATE SEQUENCE column_def_seq START WITH 1;
+
+COMMENT ON TABLE column_def IS
+  'Board oszlopok definíciója, WIP limitek, pozíció és kapcsolt státusz.';
 
 CREATE TABLE sprint(
   id            NUMBER        NOT NULL
@@ -203,7 +287,6 @@ CREATE TABLE sprint(
   ,start_date   DATE          DEFAULT SYSDATE NOT NULL
   ,end_date     DATE          NOT NULL
   ,state        VARCHAR2(16)  NOT NULL
-  ,created_at   DATE          DEFAULT SYSDATE NOT NULL
 )
 TABLESPACE users;
 
@@ -215,36 +298,58 @@ ALTER TABLE sprint
       CONSTRAINT chk_sprint_dates_valid CHECK (end_date >= start_date),
       CONSTRAINT chk_sprint_state CHECK (state IN ('PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED')));
 
+CREATE SEQUENCE sprint_seq START WITH 1;
+
+COMMENT ON TABLE sprint IS
+  'Idõszakos fejlesztési ciklus (Scrum sprint), státuszkezeléssel.';
+
 CREATE TABLE task(
   id              NUMBER        NOT NULL
   ,project_id     NUMBER        NOT NULL
   ,board_id       NUMBER        NOT NULL
   ,column_id      NUMBER        NOT NULL
   ,sprint_id      NUMBER        NOT NULL
+  ,created_by     NUMBER        NOT NULL
   ,task_key       VARCHAR2(32)  NOT NULL
   ,title          VARCHAR2(128) NOT NULL
   ,description    VARCHAR2(512)
-  ,status         VARCHAR2(32)  NOT NULL
+  ,status_id      NUMBER        NOT NULL
   ,priority       VARCHAR2(32)
   ,estimated_min  NUMBER
   ,due_date       DATE
-  ,created_by     NUMBER        NOT NULL
-  ,created_at     DATE          DEFAULT SYSDATE NOT NULL
-  ,updated_at     DATE
   ,closed_at      DATE
+  ,position       NUMBER        NOT NULL
 )
 TABLESPACE users;
 
 ALTER TABLE task
-      ADD (CONSTRAINT pk_task PRIMARY KEY (id),
+      ADD(
+      CONSTRAINT pk_task PRIMARY KEY (id),
+      
       CONSTRAINT uq_task_key_per_project UNIQUE (project_id, task_key),
+      
       CONSTRAINT chk_task_priority CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+      
       CONSTRAINT chk_task_estimated_min CHECK (estimated_min IS NULL OR estimated_min >= 0),
+      
       CONSTRAINT fk_task_project FOREIGN KEY (project_id) REFERENCES app_project(id),
       CONSTRAINT fk_task_board FOREIGN KEY (board_id) REFERENCES board(id),
       CONSTRAINT fk_task_column FOREIGN KEY (column_id) REFERENCES column_def(id),
       CONSTRAINT fk_task_sprint FOREIGN KEY (sprint_id) REFERENCES sprint(id),
-      CONSTRAINT fk_task_app_user FOREIGN KEY (created_by) REFERENCES app_user(id));
+      CONSTRAINT fk_task_app_user FOREIGN KEY (created_by) REFERENCES app_user(id),
+      
+      CONSTRAINT fk_task_status FOREIGN KEY (status_id) REFERENCES task_status(id),
+      CONSTRAINT uq_task_position_per_column UNIQUE (column_id, position)
+      );
+     
+CREATE SEQUENCE task_seq START WITH 100;
+ 
+COMMENT ON TABLE task IS
+  'Feladat (issue, user story, bug): scrum/kaban projekt alap egysége.';
+
+COMMENT ON COLUMN task.task_key IS 'Feladat kulcs (pl. PMA-12).';
+COMMENT ON COLUMN task.created_by IS 'Létrehozó felhasználó azonosítója.';
+COMMENT ON COLUMN task.closed_at IS 'Lezárás idõpontja, ha van.';
 
 CREATE TABLE task_assignment(
   task_id       NUMBER  NOT NULL
@@ -258,6 +363,9 @@ ALTER TABLE task_assignment
       CONSTRAINT fk_task_assignment_task FOREIGN KEY (task_id) REFERENCES task(id),
       CONSTRAINT fk_task_assignment_user FOREIGN KEY (user_id) REFERENCES app_user(id));
 
+COMMENT ON TABLE task_assignment IS
+  'Feladat - felelõs hozzárendelése, semennyi vagy több assignee.';
+
 CREATE TABLE label_task(
   task_id    NUMBER   NOT NULL
   ,label_id  NUMBER   NOT NULL
@@ -269,13 +377,16 @@ ALTER TABLE label_task
       CONSTRAINT fk_label_task_label_id FOREIGN KEY (label_id) REFERENCES labels(id),
       CONSTRAINT fk_label_task_task_id FOREIGN KEY (task_id) REFERENCES task(id));
 
+COMMENT ON TABLE label_task IS
+  'Task - Label kapcsolótábla: címkék hozzárendelése feladatokhoz.';
+
+
 CREATE TABLE app_comment(
   id              NUMBER          NOT NULL
   ,task_id        NUMBER          NOT NULL
   ,user_id        NUMBER          NOT NULL
   ,comment_body   VARCHAR2(1024)  NOT NULL
   ,created_at     DATE            DEFAULT SYSDATE NOT NULL
-  ,edited_at      DATE
 )
 TABLESPACE users;
 
@@ -283,6 +394,11 @@ ALTER TABLE app_comment
       ADD (CONSTRAINT pk_app_comment PRIMARY KEY (id),
       CONSTRAINT fk_app_comment_task FOREIGN KEY (task_id) REFERENCES task(id),
       CONSTRAINT fk_app_comment_app_user FOREIGN KEY (user_id) REFERENCES app_user(id));
+
+CREATE SEQUENCE app_comment_seq START WITH 1;
+
+COMMENT ON TABLE app_comment IS
+  'Kommentek feladatokhoz.';
 
 CREATE TABLE commit_link(
   id                NUMBER          NOT NULL
@@ -301,6 +417,12 @@ ALTER TABLE commit_link
       CONSTRAINT fk_commit_link_task FOREIGN KEY (task_id) REFERENCES task(id),
       CONSTRAINT uq_commit_link_task_commit UNIQUE (task_id, provider, repo_full_name, commit_sha),
       CONSTRAINT chk_commit_link_provider CHECK (provider IN ('GITHUB', 'GITLAB', 'AZURE_DEVOPS'))); 
+
+CREATE SEQUENCE commit_link_seq START WITH 1;
+
+COMMENT ON TABLE commit_link IS
+  'Commit hivatkozások (repo, provider, SHA) taskokhoz kapcsolva. 
+  pl: Ha egy taskhoz kapcsolódó commit jött egy taskra, akkor az megjelenjen a task-nál';
 
 CREATE TABLE pr_link(
   id                NUMBER          NOT NULL
@@ -322,6 +444,12 @@ ALTER TABLE pr_link
       CONSTRAINT chk_pr_link_provider CHECK (provider IN ('GITHUB', 'GITLAB', 'AZURE_DEVOPS')),
       CONSTRAINT chk_pr_link_state CHECK (state IN ('OPEN', 'CLOSED', 'MERGED')));
 
+CREATE SEQUENCE pr_link_seq START WITH 100;
+
+COMMENT ON TABLE pr_link IS
+  'Pull Request hivatkozások taskokhoz, állapot és metaadatok.
+  A commit-hoz hasonlóan megjelenik a tasknál egy pr, és annak status-át is jelezve';
+
 CREATE TABLE attachment(
   id                NUMBER            NOT NULL
   ,task_id          NUMBER            NOT NULL
@@ -341,6 +469,487 @@ ALTER TABLE attachment
       CONSTRAINT fk_attachment_uploaded_by FOREIGN KEY (uploaded_by) REFERENCES app_user(id),
       CONSTRAINT chk_attachment_size_positive CHECK (size_bytes > 0),
       CONSTRAINT uq_attachment_storage_path UNIQUE (storage_path));
+      
+CREATE SEQUENCE attachment_seq START WITH 1;
+
+-- Procedure arra hogy automatikus id és created_at adat kerüljön insertkor
+
+CREATE OR REPLACE PROCEDURE create_auto_id_created_trg_prc(p_table_name IN VARCHAR2) IS
+  v_tab         VARCHAR2(30);
+  v_cnt         NUMBER;
+  v_has_created NUMBER;
+  
+  v_has_id      NUMBER;
+  v_has_seq     NUMBER;
+  v_sql         VARCHAR2(32767);
+
+  e_invalid_name     EXCEPTION;
+  e_name_too_long    EXCEPTION;
+  e_table_not_exists EXCEPTION;
+  e_id_but_no_seq    EXCEPTION;
+BEGIN
+  ------------------------------------------------------------------
+  -- 0. Bemenet validálása
+  ------------------------------------------------------------------
+  IF p_table_name IS NULL
+     OR TRIM(p_table_name) IS NULL
+  THEN
+    RAISE e_invalid_name;
+  END IF;
+
+  IF length(TRIM(p_table_name)) > 30
+  THEN
+    RAISE e_name_too_long;
+  END IF;
+
+  v_tab := upper(TRIM(p_table_name));
+
+  SELECT COUNT(*) INTO v_cnt FROM user_tables WHERE table_name = v_tab;
+
+  IF v_cnt = 0
+  THEN
+    RAISE e_table_not_exists;
+  END IF;
+
+  ------------------------------------------------------------------
+  -- 1. Oszlopok vizsgálata: CREATED_AT, JOINED_AT, ID
+  ------------------------------------------------------------------
+  SELECT COUNT(*)
+    INTO v_has_created
+    FROM user_tab_cols
+   WHERE table_name = v_tab
+     AND column_name = 'CREATED_AT';
+
+  SELECT COUNT(*)
+    INTO v_has_joined
+    FROM user_tab_cols
+   WHERE table_name = v_tab
+     AND column_name = 'JOINED_AT';
+
+  SELECT COUNT(*)
+    INTO v_has_id
+    FROM user_tab_cols
+   WHERE table_name = v_tab
+     AND column_name = 'ID';
+
+  -- Ha van ID oszlop, legyen hozzá <TABLE>_SEQ sequence is
+  IF v_has_id > 0
+  THEN
+    SELECT COUNT(*)
+      INTO v_has_seq
+      FROM user_sequences
+     WHERE sequence_name = v_tab || '_SEQ';
+  
+    IF v_has_seq = 0
+    THEN
+      RAISE e_id_but_no_seq;
+    END IF;
+  END IF;
+
+  ------------------------------------------------------------------
+  -- 2. Ha sem CREATED_AT, sem ID, sem (PROJECT_MEMBER JOINED_AT), nem csinálunk semmit
+  ------------------------------------------------------------------
+  IF v_has_created = 0
+     AND v_has_id = 0
+     AND NOT (v_tab = 'PROJECT_MEMBER' AND v_has_joined > 0)
+  THEN
+    RETURN;
+  END IF;
+
+  ------------------------------------------------------------------
+  -- 3. Trigger szöveg generálása
+  ------------------------------------------------------------------
+  v_sql := 'CREATE OR REPLACE TRIGGER ' || v_tab || '_BI_AUTO ' ||
+           'BEFORE INSERT ON ' || v_tab || ' ' || 'FOR EACH ROW ' ||
+           'BEGIN ';
+
+  -- CREATED_AT töltése, ha van ilyen oszlop
+  IF v_has_created > 0
+  THEN
+    v_sql := v_sql || 'IF :NEW.created_at IS NULL THEN ' ||
+             '  :NEW.created_at := SYSDATE; ' || 'END IF; ';
+  END IF;
+
+  -- PROJECT_MEMBER esetén a JOINED_AT-et is töltsük
+  IF v_tab = 'PROJECT_MEMBER'
+     AND v_has_joined > 0
+  THEN
+    v_sql := v_sql || 'IF :NEW.joined_at IS NULL THEN ' ||
+             '  :NEW.joined_at := SYSDATE; ' || 'END IF; ';
+  END IF;
+
+  -- ID töltése, ha van ID oszlop + létezik <TABLE>_SEQ
+  IF v_has_id > 0
+  THEN
+    v_sql := v_sql || 'IF :NEW.id IS NULL THEN ' || '  SELECT ' || v_tab ||
+             '_SEQ.NEXTVAL INTO :NEW.id FROM dual; ' || 'END IF; ';
+  END IF;
+
+  v_sql := v_sql || 'END;';
+
+  ------------------------------------------------------------------
+  -- 4. Trigger létrehozása
+  ------------------------------------------------------------------
+  EXECUTE IMMEDIATE v_sql;
+
+EXCEPTION
+  WHEN e_invalid_name THEN
+    raise_application_error(-20100,
+                            'create_auto_id_created_trg_prc: table name must not be NULL or empty.');
+  
+  WHEN e_name_too_long THEN
+    raise_application_error(-20101,
+                            'create_auto_id_created_trg_prc: table name "' ||
+                            TRIM(p_table_name) ||
+                            '" is longer than 30 characters.');
+  
+  WHEN e_table_not_exists THEN
+    raise_application_error(-20102,
+                            'create_auto_id_created_trg_prc: table "' ||
+                            v_tab || '" does not exist in current schema.');
+  
+  WHEN e_id_but_no_seq THEN
+    raise_application_error(-20103,
+                            'create_auto_id_created_trg_prc: table "' ||
+                            v_tab || '" has ID column but no sequence "' ||
+                            v_tab || '_SEQ".');
+  
+  WHEN OTHERS THEN
+    raise_application_error(-20199,
+                            'create_auto_id_created_trg_prc failed for table: "' ||
+                            nvl(v_tab, TRIM(p_table_name)) || '": ' ||
+                            SQLERRM);
+END;
+/
+
+-- Automatikus _h táblák és triggerek létrehozása a táblákhoz
+
+CREATE OR REPLACE PROCEDURE create_historisation_for_table(p_table_name IN VARCHAR2) IS
+  v_tab        VARCHAR2(30);
+  -- Max 30 karakter hossz miatt limitálom a bementetet.
+  v_cnt        NUMBER;
+  v_col_list   VARCHAR2(32767);
+  v_new_list   VARCHAR2(32767);
+  v_old_del_list VARCHAR2(32767);
+  v_sql        VARCHAR2(32767);
+  
+  e_invalid_name      EXCEPTION;
+  e_name_too_long     EXCEPTION;
+  e_table_not_exists  EXCEPTION;
+BEGIN
+  ----------------------------------------------------------------------------
+  -- 0. Input validáció + korrekció
+  ----------------------------------------------------------------------------
+  IF p_table_name IS NULL OR TRIM(p_table_name) IS NULL THEN
+     RAISE e_invalid_name;
+  END IF;
+
+  IF LENGTH(TRIM(p_table_name)) > 30 THEN
+    RAISE e_name_too_long;
+  END IF;
+
+  v_tab := UPPER(TRIM(p_table_name));
+  
+  SELECT COUNT(*)
+  INTO v_cnt
+  FROM user_tables
+  WHERE table_name = v_tab;
+  IF v_cnt = 0 THEN
+    RAISE e_table_not_exists;
+  END IF;
+  
+  ----------------------------------------------------------------------------
+  -- 1. Oszlopok hozzáadása: MOD_USER, DML_FLAG, LAST_MODIFIED, VERSION
+  ----------------------------------------------------------------------------
+
+  -- MOD_USER
+  SELECT COUNT(*) INTO v_cnt
+  FROM user_tab_cols
+  WHERE table_name = v_tab
+    AND column_name = 'MOD_USER';
+  -- Ellenörzés hogy létezik e a hozzáadandó oszlop
+  
+  IF v_cnt = 0 THEN
+    EXECUTE IMMEDIATE
+      'ALTER TABLE ' || v_tab || ' ADD (mod_user VARCHAR2(300))';
+  END IF;
+
+  -- DML_FLAG
+  SELECT COUNT(*) INTO v_cnt
+  FROM user_tab_cols
+  WHERE table_name = v_tab
+    AND column_name = 'DML_FLAG';
+
+  IF v_cnt = 0 THEN
+    EXECUTE IMMEDIATE
+      'ALTER TABLE ' || v_tab || ' ADD (dml_flag VARCHAR2(1))';
+  END IF;
+
+  -- LAST_MODIFIED
+  SELECT COUNT(*) INTO v_cnt
+  FROM user_tab_cols
+  WHERE table_name = v_tab
+    AND column_name = 'LAST_MODIFIED';
+
+  IF v_cnt = 0 THEN
+    EXECUTE IMMEDIATE
+      'ALTER TABLE ' || v_tab || ' ADD (last_modified DATE)';
+  END IF;
+
+  -- VERSION
+  SELECT COUNT(*) INTO v_cnt
+  FROM user_tab_cols
+  WHERE table_name = v_tab
+    AND column_name = 'VERSION';
+
+  IF v_cnt = 0 THEN
+    EXECUTE IMMEDIATE
+      'ALTER TABLE ' || v_tab || ' ADD (version NUMBER)';
+  END IF;
+
+  ------------------------------------------------------------------
+  -- 2. HISTORY tábla létrehozása: <TABLE>_H
+  --    csak minden oszlop átmásolása
+  ------------------------------------------------------------------
+
+  SELECT COUNT(*) INTO v_cnt
+  FROM user_tables
+  WHERE table_name = v_tab || '_H';
+
+  IF v_cnt = 0 THEN
+    v_sql :=
+      'CREATE TABLE ' || v_tab || '_H AS ' ||
+      'SELECT * FROM ' || v_tab || ' WHERE 1 = 2';
+    EXECUTE IMMEDIATE v_sql;
+  END IF;
+
+  ------------------------------------------------------------------
+  -- 3. Oszloplista legenerálása a triggerekhez
+  ------------------------------------------------------------------
+
+  v_col_list := NULL;
+  v_new_list := NULL;
+  v_old_del_list := NULL;
+
+  FOR c IN (
+    SELECT column_name
+    FROM user_tab_cols
+    WHERE table_name = v_tab
+    ORDER BY column_id
+  ) LOOP
+    -- közös oszloplista
+    IF v_col_list IS NULL THEN
+      v_col_list := c.column_name;
+    ELSE
+      v_col_list := v_col_list || ',' || c.column_name;
+    END IF;
+
+    -- INSERT/UPDATE esetén :NEW.<column> a DML_FLAG-et már kezeltem a másik triggerben.
+    IF v_new_list IS NULL THEN
+      v_new_list := ':NEW.' || c.column_name;
+    ELSE
+      v_new_list := v_new_list || ',:NEW.' || c.column_name;
+    END IF;
+
+    -- DELETE esetén: minden :OLD.<column>, KIVÉVE DML_FLAG = 'D'.
+    IF c.column_name = 'DML_FLAG' THEN
+      IF v_old_del_list IS NULL THEN
+        v_old_del_list := '''D''';
+      ELSE
+        v_old_del_list := v_old_del_list || ',''D''';
+      END IF;
+    ELSE
+      IF v_old_del_list IS NULL THEN
+        v_old_del_list := ':OLD.' || c.column_name;
+      ELSE
+        v_old_del_list := v_old_del_list || ',:OLD.' || c.column_name;
+      END IF;
+    END IF;
+  END LOOP;
+
+  ------------------------------------------------------------------
+  -- 4. BEFORE INSERT/UPDATE trigger: <TABLE>_TRG
+  --    mod_user, dml_flag, last_modified, version töltése
+  ------------------------------------------------------------------
+
+  v_sql :=
+    'CREATE OR REPLACE TRIGGER ' || v_tab || '_TRG ' ||
+    'BEFORE INSERT OR UPDATE ON ' || v_tab || ' ' ||
+    'FOR EACH ROW ' ||
+    'BEGIN ' ||
+    '  IF INSERTING THEN ' ||
+    '    :NEW.mod_user      := sys_context(''USERENV'',''OS_USER''); ' ||
+    '    :NEW.dml_flag      := ''I''; ' ||
+    '    :NEW.last_modified := SYSDATE; ' ||
+    '    :NEW.version       := NVL(:NEW.version, 1); ' ||
+    '  ELSE ' ||
+    '    :NEW.mod_user      := sys_context(''USERENV'',''OS_USER''); ' ||
+    '    :NEW.dml_flag      := ''U''; ' ||
+    '    :NEW.last_modified := SYSDATE; ' ||
+    '    :NEW.version       := NVL(:OLD.version, 0) + 1; ' ||
+    '  END IF; ' ||
+    'END;';
+
+  EXECUTE IMMEDIATE v_sql;
+
+  ------------------------------------------------------------------
+  -- 5. AFTER INSERT/UPDATE/DELETE trigger: <TABLE>_H_TRG
+  --    history logolás <TABLE>_H táblába (dump)
+  ------------------------------------------------------------------
+
+  v_sql :=
+    'CREATE OR REPLACE TRIGGER ' || v_tab || '_H_TRG ' ||
+    'AFTER INSERT OR UPDATE OR DELETE ON ' || v_tab || ' ' ||
+    'FOR EACH ROW ' ||
+    'BEGIN ' ||
+    '  IF DELETING THEN ' ||
+    '    INSERT INTO ' || v_tab || '_H (' || v_col_list || ') ' ||
+    '    VALUES (' || v_old_del_list || '); ' ||
+    '  ELSE ' ||
+    '    INSERT INTO ' || v_tab || '_H (' || v_col_list || ') ' ||
+    '    VALUES (' || v_new_list || '); ' ||
+    '  END IF; ' ||
+    'END;';
+
+  EXECUTE IMMEDIATE v_sql;
+  
+EXCEPTION
+  WHEN e_invalid_name THEN
+    RAISE_APPLICATION_ERROR(
+      -20000,
+      'create_historisation_for_table: table name must not be NULL or empty.'
+    );
+    RAISE;
+  WHEN e_name_too_long THEN
+    RAISE_APPLICATION_ERROR(
+      -20001,
+      'create_historisation_for_table: table name: "' || p_table_name ||
+      '" is longer than 30 characters (Oracle 11g limit).'
+    );
+    RAISE;
+  WHEN e_table_not_exists THEN
+    RAISE_APPLICATION_ERROR(
+      -20002,
+      'create_historisation_for_table: table "' || v_tab ||
+      '" does not exist in current schema.'
+    );
+    RAISE;
+  WHEN OTHERS THEN
+    RAISE_APPLICATION_ERROR(
+      -20009,
+      'create_historisation_for_table failed for table "' ||
+      NVL(v_tab, p_table_name) || '": ' || SQLERRM
+    );
+    RAISE;
+END;
+/
+-- automatikus id és created at trg-k létrehozása
+
+BEGIN
+  create_auto_id_created_trg_prc('APP_USER');
+  create_auto_id_created_trg_prc('APP_ROLE');
+  create_auto_id_created_trg_prc('APP_PROJECT');
+  create_auto_id_created_trg_prc('PROJECT_MEMBER');
+  create_auto_id_created_trg_prc('TASK_STATUS');
+  create_auto_id_created_trg_prc('BOARD');
+  create_auto_id_created_trg_prc('COLUMN_DEF');
+  create_auto_id_created_trg_prc('SPRINT');
+  create_auto_id_created_trg_prc('TASK');
+  create_auto_id_created_trg_prc('LABELS');
+  create_auto_id_created_trg_prc('TASK_ASSIGNMENT');
+  create_auto_id_created_trg_prc('APP_COMMENT');
+  create_auto_id_created_trg_prc('INTEGRATION');
+  create_auto_id_created_trg_prc('COMMIT_LINK');
+  create_auto_id_created_trg_prc('PR_LINK');
+  create_auto_id_created_trg_prc('ATTACHMENT');
+  create_auto_id_created_trg_prc('apP_ACTIVITY');
+END;
+/
+
+-- _h history táblák létrehozása
+BEGIN
+  create_historisation_for_table('APP_PROJECT');
+  create_historisation_for_table('TASK');
+  create_historisation_for_table('TASK_STATUS');
+  create_historisation_for_table('task_assignment');
+  create_historisation_for_table('SPRINT');
+  create_historisation_for_table('APP_COMMENT');
+  create_historisation_for_table('BOARD');
+  create_historisation_for_table('COLUMN_DEF');
+  create_historisation_for_table('PROJECT_MEMBER');
+  create_historisation_for_table('APP_USER_ROLE');
+END;
+/
+-- automatikus project key generálás taskokhoz
+
+CREATE OR REPLACE FUNCTION build_next_task_key_fnc(p_project_id IN NUMBER)
+  RETURN VARCHAR2 IS
+  l_proj_key app_project.proj_key%TYPE;
+  l_seq_name app_project.task_seq_name%TYPE;
+  l_next_num NUMBER;
+BEGIN
+  SELECT proj_key
+        ,task_seq_name
+    INTO l_proj_key
+        ,l_seq_name
+    FROM app_project
+   WHERE id = p_project_id;
+
+  EXECUTE IMMEDIATE 'SELECT ' || l_seq_name || '.NEXTVAL FROM dual'
+    INTO l_next_num;
+
+  RETURN l_proj_key || '-' || lpad(l_next_num, 4, '0');
+END;
+/
+CREATE OR REPLACE FUNCTION build_task_seq_name_fnc(p_proj_key IN VARCHAR2)
+  RETURN VARCHAR2 IS
+  l_base_name VARCHAR2(30);
+  l_seq_name  VARCHAR2(30);
+BEGIN
+  l_base_name := upper(p_proj_key);
+
+  -- csak A–Z, 0–9, egyébként cseréljük
+  l_base_name := regexp_replace(l_base_name, '[^A-Z0-9_]', '_');
+
+  -- ha számmal kezdõdne, tegyünk elé 'P_'
+  IF regexp_like(l_base_name, '^[0-9]')
+  THEN
+    l_base_name := 'P_' || l_base_name;
+  END IF;
+
+  -- név: <base>_SEQ, max 30 karakter
+  l_seq_name := substr(l_base_name || '_SEQ', 1, 30);
+
+  RETURN l_seq_name;
+END;
+/
+
+CREATE OR REPLACE TRIGGER task_auto_key_trg
+  BEFORE INSERT ON task
+  FOR EACH ROW
+BEGIN
+  IF :NEW.task_key IS NULL THEN
+    :NEW.task_key := build_next_task_key_fnc(:NEW.project_id);
+  END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER app_project_crea_task_seq_trg
+  BEFORE INSERT ON app_project
+  FOR EACH ROW
+DECLARE
+BEGIN
+  :NEW.task_seq_name := build_task_seq_name_fnc(:NEW.proj_key);
+  
+  BEGIN
+    EXECUTE IMMEDIATE
+      'CREATE SEQUENCE ' || :NEW.task_seq_name ||
+      ' START WITH 1 INCREMENT BY 1';
+  END;
+END;
+/
+
+
 
 
 

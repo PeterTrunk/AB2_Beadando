@@ -2,6 +2,7 @@ CREATE TABLE app_project(
   id              NUMBER          PRIMARY KEY
   ,project_name   VARCHAR2(140)   UNIQUE NOT NULL
   ,proj_key       VARCHAR2(16)    UNIQUE NOT NULL
+  ,proj_key_seq   VARCHAR2(30)    
   ,description    VARCHAR2(2000)
   ,owner_id       NUMBER
   ,is_archived    NUMBER(1)       DEFAULT 0 NOT NULL
@@ -12,7 +13,7 @@ TABLESPACE users;
 ALTER TABLE app_project
       ADD CONSTRAINT fk_app_project_owner FOREIGN KEY (owner_id) REFERENCES app_suer(id);
 
-CREATE SEQUENCE actvivity_seq START WITH 1;
+CREATE SEQUENCE app_project_seq START WITH 1;
 
 COMMENT ON TABLE app_project IS
   'Projekt entitás: feladatok és boardok szervezése.';
