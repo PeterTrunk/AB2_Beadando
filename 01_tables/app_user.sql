@@ -5,7 +5,6 @@ CREATE TABLE app_user(
   ,password_hash  VARCHAR2(255)
   ,is_active      number(1)       DEFAULT 0 NOT NULL
   ,created_at     DATE            DEFAULT SYSDATE NOT NULL
-  ,last_modified  DATE            DEFAULT SYSDATE NOT NULL
 )
 TABLESPACE users;
 

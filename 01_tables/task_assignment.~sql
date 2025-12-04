@@ -6,9 +6,9 @@ CREATE TABLE task_assignment(
 TABLESPACE users;
 
 ALTER TABLE task_assignment
-      ADD CONSTRAINT pk_task_assignment PRIMARY KEY (task_id, user_id),
+      ADD (CONSTRAINT pk_task_assignment PRIMARY KEY (task_id, user_id),
       CONSTRAINT fk_task_assignment_task FOREIGN KEY (task_id) REFERENCES task(id),
-      CONSTRAINT fk_task_assignment_user FOREIGN KEY (user_id) REFERENCES app_user(id);
+      CONSTRAINT fk_task_assignment_user FOREIGN KEY (user_id) REFERENCES app_user(id));
 
 COMMENT ON TABLE task_assignment IS
   'Feladat - felelõs hozzárendelése, semennyi vagy több assignee.';

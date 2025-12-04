@@ -14,7 +14,6 @@ CREATE TABLE task(
   ,position       NUMBER        NOT NULL
   ,created_by     NUMBER        NOT NULL
   ,created_at     DATE          DEFAULT SYSDATE NOT NULL
-  ,updated_at     DATE
   ,closed_at      DATE
 )
 TABLESPACE users;

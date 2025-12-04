@@ -4,10 +4,6 @@ CREATE TABLE app_comment(
   ,user_id        NUMBER          NOT NULL
   ,comment_body   VARCHAR2(1024)  NOT NULL
   ,created_at     DATE            DEFAULT SYSDATE NOT NULL
-  ,mod_user       VARCHAR2(300)   
-  ,dml_flag       VARCHAR2(1)     NOT NULL
-  ,last_modified  DATE            DEFAULT SYSDATE NOT NULL
-  ,version        NUMBER
 )
 TABLESPACE users;
 

@@ -6,9 +6,9 @@ CREATE TABLE app_user_role(
 TABLESPACE users;
 
 ALTER TABLE app_user_role
-      CONSTRAINT pk_app_user_role PRIMARY KEY (user_id, role_id),
+      ADD (CONSTRAINT pk_app_user_role PRIMARY KEY (user_id, role_id),
       CONSTRAINT fk_app_user_role_user FOREIGN KEY (user_id) REFERENCES app_user(id),
-      CONSTRAINT fk_app_user_role_role FOREIGN KEY (role_id) REFERENCES app_role(id);
+      CONSTRAINT fk_app_user_role_role FOREIGN KEY (role_id) REFERENCES app_role(id));
 
 CREATE SEQUENCE app_user_role_seq START WITH 1;
 

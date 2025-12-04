@@ -12,12 +12,6 @@ CREATE TABLE task(
   ,estimated_min  NUMBER
   ,due_date       DATE
   ,position       NUMBER        NOT NULL
-  ,created_by     NUMBER        NOT NULL
-  ,created_at     DATE          DEFAULT SYSDATE NOT NULL
-  ,updated_at     DATE
-  ,closed_at      DATE
-  ,dml_flag      VARCHAR2(1)    NOT NULL
-  ,last_modified DATE           DEFAULT SYSDATE NOT NULL
 )
 TABLESPACE users;
 

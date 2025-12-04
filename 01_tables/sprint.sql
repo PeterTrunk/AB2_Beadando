@@ -7,9 +7,6 @@ CREATE TABLE sprint(
   ,start_date   DATE          DEFAULT SYSDATE NOT NULL
   ,end_date     DATE          NOT NULL
   ,state        VARCHAR2(16)  NOT NULL
-  ,created_at   DATE          DEFAULT SYSDATE NOT NULL
-  ,dml_flag      VARCHAR2(1)    NOT NULL
-  ,last_modified DATE           DEFAULT SYSDATE NOT NULL
 )
 TABLESPACE users;
 
