@@ -931,22 +931,15 @@ BEGIN
   IF :NEW.task_key IS NULL THEN
     :NEW.task_key := build_next_task_key_fnc(:NEW.project_id);
   END IF;
-END;
+END task_auto_key_trg;
 /
 
 CREATE OR REPLACE TRIGGER app_project_crea_task_seq_trg
   BEFORE INSERT ON app_project
   FOR EACH ROW
-DECLARE
 BEGIN
   :NEW.task_seq_name := build_task_seq_name_fnc(:NEW.proj_key);
-  
-  BEGIN
-    EXECUTE IMMEDIATE
-      'CREATE SEQUENCE ' || :NEW.task_seq_name ||
-      ' START WITH 1 INCREMENT BY 1';
-  END;
-END;
+END app_project_crea_task_seq_trg;
 /
 
 BEGIN
@@ -954,160 +947,136 @@ BEGIN
 -- TESZT ADATOK – AUTO ID + CREATED_AT triggerekhez igazítva
 -------------------------------------------------------------------------------
 
--- SZEREPKÖRÖK
-INSERT INTO app_role
-  (role_name
-  ,description)
-VALUES
-  ('ADMIN'
-  ,'Rendszeradminisztrátor');
+DECLARE
+  -- szerepkör ID-k
+  v_admin_role_id         app_role.id%TYPE;
+  v_project_owner_role_id app_role.id%TYPE;
+  v_developer_role_id     app_role.id%TYPE;
 
-INSERT INTO app_role
-  (role_name
-  ,description)
-VALUES
-  ('PROJECT_OWNER'
-  ,'Projekt tulajdonos / vezetõ');
+  -- user ID-k
+  v_admin_user_id app_user.id%TYPE;
+  v_peter_user_id app_user.id%TYPE;
+  v_dev_user_id   app_user.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- SZEREPKÖRÖK
+  --------------------------------------------------------------------
+  create_role_prc(p_role_name   => 'ADMIN',
+                  p_description => 'Rendszeradminisztrátor',
+                  p_role_id     => v_admin_role_id);
 
-INSERT INTO app_role
-  (role_name
-  ,description)
-VALUES
-  ('DEVELOPER'
-  ,'Fejlesztõ csapattag');
+  create_role_prc(p_role_name   => 'PROJECT_OWNER',
+                  p_description => 'Projekt tulajdonos / vezetõ',
+                  p_role_id     => v_project_owner_role_id);
 
--- FELHASZNÁLÓK
-INSERT INTO app_user
-  (email
-  ,display_name
-  ,password_hash
-  ,is_active)
-VALUES
-  ('admin@example.com'
-  ,'Admin Felhasználó'
-  ,'hashed_admin_pw'
-  ,1);
+  create_role_prc(p_role_name   => 'DEVELOPER',
+                  p_description => 'Fejlesztõ csapattag',
+                  p_role_id     => v_developer_role_id);
 
-INSERT INTO app_user
-  (email
-  ,display_name
-  ,password_hash
-  ,is_active)
-VALUES
-  ('peter@example.com'
-  ,'Trunk Péter'
-  ,'hashed_peter_pw'
-  ,1);
+  --------------------------------------------------------------------
+  -- FELHASZNÁLÓK
+  --------------------------------------------------------------------
+  create_user_prc(p_email         => 'admin@example.com',
+                  p_display_name  => 'Admin Felhasználó',
+                  p_password_hash => 'hashed_admin_pw',
+                  p_is_active     => 1,
+                  p_user_id       => v_admin_user_id);
 
-INSERT INTO app_user
-  (email
-  ,display_name
-  ,password_hash
-  ,is_active)
-VALUES
-  ('dev@example.com'
-  ,'Fejlesztõ Béla'
-  ,'hashed_dev_pw'
-  ,0);
+  create_user_prc(p_email         => 'peter@example.com',
+                  p_display_name  => 'Trunk Péter',
+                  p_password_hash => 'hashed_peter_pw',
+                  p_is_active     => 1,
+                  p_user_id       => v_peter_user_id);
 
--- FELHASZNÁLÓ–SZEREPKÖR hozzárendelések
-INSERT INTO app_user_role
-  (user_id
-  ,role_id)
-VALUES
-  ((SELECT id FROM app_user WHERE email = 'admin@example.com')
-  ,(SELECT id FROM app_role WHERE role_name = 'ADMIN'));
+  create_user_prc(p_email         => 'dev@example.com',
+                  p_display_name  => 'Fejlesztõ Béla',
+                  p_password_hash => 'hashed_dev_pw',
+                  p_is_active     => 0,
+                  p_user_id       => v_dev_user_id);
 
-INSERT INTO app_user_role
-  (user_id
-  ,role_id)
-VALUES
-  ((SELECT id FROM app_user WHERE email = 'admin@example.com')
-  ,(SELECT id FROM app_role WHERE role_name = 'PROJECT_OWNER'));
+  --------------------------------------------------------------------
+  -- FELHASZNÁLÓ–SZEREPKÖR hozzárendelések
+  --------------------------------------------------------------------
+  -- admin: ADMIN
+  assign_role_to_user_prc(p_user_id => v_admin_user_id,
+                          p_role_id => v_admin_role_id);
 
-INSERT INTO app_user_role
-  (user_id
-  ,role_id)
-VALUES
-  ((SELECT id FROM app_user WHERE email = 'peter@example.com')
-  ,(SELECT id FROM app_role WHERE role_name = 'PROJECT_OWNER'));
+  -- admin: PROJECT_OWNER
+  assign_role_to_user_prc(p_user_id => v_admin_user_id,
+                          p_role_id => v_project_owner_role_id);
 
-INSERT INTO app_user_role
-  (user_id
-  ,role_id)
-VALUES
-  ((SELECT id FROM app_user WHERE email = 'peter@example.com')
-  ,(SELECT id FROM app_role WHERE role_name = 'DEVELOPER'));
+  -- Péter: PROJECT_OWNER
+  assign_role_to_user_prc(p_user_id => v_peter_user_id,
+                          p_role_id => v_project_owner_role_id);
 
-INSERT INTO app_user_role
-  (user_id
-  ,role_id)
-VALUES
-  ((SELECT id FROM app_user WHERE email = 'dev@example.com')
-  ,(SELECT id FROM app_role WHERE role_name = 'DEVELOPER'));
+  -- Péter: DEVELOPER
+  assign_role_to_user_prc(p_user_id => v_peter_user_id,
+                          p_role_id => v_developer_role_id);
 
--------------------------------------------------------------------------------
--- PROJEKTEK
--------------------------------------------------------------------------------
+  -- Dev Béla: DEVELOPER
+  assign_role_to_user_prc(p_user_id => v_dev_user_id,
+                          p_role_id => v_developer_role_id);
+END;
+/
 
-INSERT INTO app_project
-  (project_name
-  ,proj_key
-  ,description
-  ,owner_id)
-VALUES
-  ('PMA - Projektmenedzsment app'
-  ,'PMA'
-  ,'Saját hosztolású projektmenedzsment alkalmazás (kanban + statisztikák + Git integráció).'
-  ,(SELECT id FROM app_user WHERE email = 'admin@example.com'));
+DECLARE
+  v_pma_id    app_project.id%TYPE;
+  v_devops_id app_project.id%TYPE;
 
-INSERT INTO app_project
-  (project_name
-  ,proj_key
-  ,description
-  ,owner_id)
-VALUES
-  ('DEVOPS - Demo projekt'
-  ,'DEVOPS'
-  ,'Demo projekt DevOps pipeline-ok és issue tracking kipróbálásához.'
-  ,(SELECT id FROM app_user WHERE email = 'peter@example.com'));
+  v_admin_id app_user.id%TYPE;
+  v_peter_id app_user.id%TYPE;
+  v_dev_id   app_user.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- PROJEKTEK LÉTREHOZÁSA
+  --------------------------------------------------------------------
+  create_project_prc(p_project_name => 'PMA - Projektmenedzsment app', p_proj_key => 'PMA', p_description => 'Saját hosztolású projektmenedzsment alkalmazás (kanban + statisztikák + Git integráció).', p_owner_id => (
+    SELECT id
+      FROM app_user
+     WHERE email = 'admin@example.com'), p_project_id => v_pma_id);
 
--- PROJEKT TAGSÁGOK (joined_at-et a trigger tölti)
-INSERT INTO project_member
-  (project_id
-  ,user_id
-  ,project_role)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,(SELECT id FROM app_user WHERE email = 'admin@example.com')
-  ,'OWNER');
+  create_project_prc(p_project_name => 'DEVOPS - Demo projekt', p_proj_key => 'DEVOPS', p_description => 'Demo projekt DevOps pipeline-ok és issue tracking kipróbálásához.', p_owner_id => (
+    SELECT id
+      FROM app_user
+     WHERE email = 'peter@example.com'), p_project_id => v_devops_id);
 
-INSERT INTO project_member
-  (project_id
-  ,user_id
-  ,project_role)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,(SELECT id FROM app_user WHERE email = 'peter@example.com')
-  ,'DEVELOPER');
+  SELECT id
+    INTO v_admin_id
+    FROM app_user
+   WHERE email = 'admin@example.com';
 
-INSERT INTO project_member
-  (project_id
-  ,user_id
-  ,project_role)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,(SELECT id FROM app_user WHERE email = 'dev@example.com')
-  ,'DEVELOPER');
+  SELECT id
+    INTO v_peter_id
+    FROM app_user
+   WHERE email = 'peter@example.com';
 
-INSERT INTO project_member
-  (project_id
-  ,user_id
-  ,project_role)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'DEVOPS')
-  ,(SELECT id FROM app_user WHERE email = 'peter@example.com')
-  ,'OWNER');
+  SELECT id INTO v_dev_id FROM app_user WHERE email = 'dev@example.com';
+
+  --------------------------------------------------------------------
+  -- PROJEKT TAGSÁGOK (PROJECT_MEMBER)
+  --------------------------------------------------------------------
+  -- PMA: admin = OWNER
+  assign_user_to_project_prc(p_project_id   => v_pma_id,
+                             p_user_id      => v_admin_id,
+                             p_project_role => 'OWNER');
+
+  -- PMA: Péter = DEVELOPER
+  assign_user_to_project_prc(p_project_id   => v_pma_id,
+                             p_user_id      => v_peter_id,
+                             p_project_role => 'DEVELOPER');
+
+  -- PMA: Dev Béla = DEVELOPER
+  assign_user_to_project_prc(p_project_id   => v_pma_id,
+                             p_user_id      => v_dev_id,
+                             p_project_role => 'DEVELOPER');
+
+  -- DEVOPS: Péter = OWNER
+  assign_user_to_project_prc(p_project_id   => v_devops_id,
+                             p_user_id      => v_peter_id,
+                             p_project_role => 'OWNER');
+END;
+/
+
 
 -------------------------------------------------------------------------------
 -- TASK STATUSOK
@@ -1711,7 +1680,6 @@ VALUES
   ,(SELECT t.id FROM task t WHERE t.title = 'Historizáció implementálása')
   ,'TASK_STATUS_CHANGE'
   ,'Task státusz beállítva: IN_PROGRESS');
-
 
 
 END;
