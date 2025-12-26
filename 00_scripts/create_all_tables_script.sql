@@ -318,7 +318,7 @@ CREATE TABLE task(
   ,estimated_min  NUMBER
   ,due_date       DATE
   ,closed_at      DATE
-  ,position       NUMBER        NOT NULL
+  ,position       NUMBER
 )
 TABLESPACE users;
 
@@ -862,7 +862,7 @@ BEGIN
   create_auto_id_created_trg_prc('COMMIT_LINK');
   create_auto_id_created_trg_prc('PR_LINK');
   create_auto_id_created_trg_prc('ATTACHMENT');
-  create_auto_id_created_trg_prc('apP_ACTIVITY');
+  create_auto_id_created_trg_prc('APP_ACTIVITY');
 END;
 /
 
@@ -941,11 +941,622 @@ BEGIN
   :NEW.task_seq_name := build_task_seq_name_fnc(:NEW.proj_key);
 END app_project_crea_task_seq_trg;
 /
-
+CREATE OR REPLACE PROCEDURE create_role_prc(p_role_name   IN app_role.role_name%TYPE
+                                           ,p_description IN app_role.description%TYPE DEFAULT NULL
+                                           ,p_role_id     OUT app_role.id%TYPE) IS
 BEGIN
-  -------------------------------------------------------------------------------
--- TESZT ADATOK – AUTO ID + CREATED_AT triggerekhez igazítva
--------------------------------------------------------------------------------
+  INSERT INTO app_role
+    (role_name
+    ,description)
+  VALUES
+    (p_role_name
+    ,p_description)
+  RETURNING id INTO p_role_id;
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20020,
+                            'create_role_prc: role_name "' || p_role_name ||
+                            '" már létezik.');
+  WHEN OTHERS THEN
+    raise_application_error(-20021,
+                            'create_role_prc hiba role_name = "' ||
+                            p_role_name || '": ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_user_prc(p_email         IN app_user.email%TYPE
+                                           ,p_display_name  IN app_user.display_name%TYPE
+                                           ,p_password_hash IN app_user.password_hash%TYPE
+                                           ,p_is_active     IN NUMBER DEFAULT 1
+                                           ,p_user_id       OUT app_user.id%TYPE) IS
+BEGIN
+  INSERT INTO app_user
+    (email
+    ,display_name
+    ,password_hash
+    ,is_active)
+  VALUES
+    (p_email
+    ,p_display_name
+    ,p_password_hash
+    ,p_is_active)
+  RETURNING id INTO p_user_id;
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20030,
+                            'create_user_prc: email "' || p_email ||
+                            '" már létezik.');
+  WHEN OTHERS THEN
+    raise_application_error(-20031,
+                            'create_user_prc hiba email = "' || p_email ||
+                            '": ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE assign_role_to_user_prc(p_user_id IN app_user.id%TYPE
+                                                   ,p_role_id IN app_role.id%TYPE) IS
+BEGIN
+  INSERT INTO app_user_role
+    (user_id
+    ,role_id
+    ,assigned_at)
+  VALUES
+    (p_user_id
+    ,p_role_id
+    ,SYSDATE);
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20040,
+                            'assign_role_to_user_prc: a szerepkör már hozzá van rendelve ehhez a userhez. ' ||
+                            '(user_id = ' || p_user_id || ', role_id = ' ||
+                            p_role_id || ')');
+  WHEN OTHERS THEN
+    raise_application_error(-20041,
+                            'assign_role_to_user_prc hiba (user_id = ' ||
+                            p_user_id || ', role_id = ' || p_role_id ||
+                            '): ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_project_prc(p_project_name IN app_project.project_name%TYPE
+                                                       ,p_proj_key     IN app_project.proj_key%TYPE
+                                                       ,p_description  IN app_project.description%TYPE DEFAULT NULL
+                                                       ,p_owner_id     IN app_project.owner_id%TYPE
+                                                       ,p_project_id   OUT app_project.id%TYPE) IS
+  v_seq_name app_project.task_seq_name%TYPE;
+  v_cnt      NUMBER;
+  v_sql      VARCHAR2(4000);
+BEGIN
+  ------------------------------------------------------------------
+  -- 1. Task sequence név felépítése (pl. 'PMA_SEQ')
+  ------------------------------------------------------------------
+  v_seq_name := build_task_seq_name_fnc(p_proj_key);
+
+  ------------------------------------------------------------------
+  -- 2. Projekt beszúrása app_project-be
+  ------------------------------------------------------------------
+  INSERT INTO app_project
+    (id
+    ,project_name
+    ,proj_key
+    ,task_seq_name
+    ,description
+    ,owner_id)
+  VALUES
+    (app_project_seq.nextval
+    ,p_project_name
+    ,p_proj_key
+    ,v_seq_name
+    ,p_description
+    ,p_owner_id)
+  RETURNING id INTO p_project_id;
+
+  ------------------------------------------------------------------
+  -- 3. Sequence létrehozása, ha még nem létezik
+  ------------------------------------------------------------------
+  SELECT COUNT(*)
+    INTO v_cnt
+    FROM user_sequences
+   WHERE sequence_name = v_seq_name;
+
+  IF v_cnt = 0
+  THEN
+    v_sql := 'CREATE SEQUENCE ' || v_seq_name ||
+             ' START WITH 1 INCREMENT BY 1 NOCACHE';
+    EXECUTE IMMEDIATE v_sql;
+  END IF;
+END;
+/
+CREATE OR REPLACE PROCEDURE assign_user_to_project_prc(p_project_id   IN project_member.project_id%TYPE
+                                                      ,p_user_id      IN project_member.user_id%TYPE
+                                                      ,p_project_role IN project_member.project_role%TYPE DEFAULT NULL) IS
+BEGIN
+  INSERT INTO project_member
+    (project_id
+    ,user_id
+    ,project_role)
+  VALUES
+    (p_project_id
+    ,p_user_id
+    ,p_project_role);
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20050,
+                            'assign_user_to_project_prc: a felhasználó már tagja a projektnek. ' ||
+                            '(project_id = ' || p_project_id ||
+                            ', user_id = ' || p_user_id || ')');
+  
+  WHEN OTHERS THEN
+    raise_application_error(-20051,
+                            'assign_user_to_project_prc hiba (project_id = ' ||
+                            p_project_id || ', user_id = ' || p_user_id ||
+                            '): ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_task_status_prc(p_code        IN task_status.code%TYPE
+                                                  ,p_name        IN task_status.name%TYPE
+                                                  ,p_description IN task_status.description%TYPE DEFAULT NULL
+                                                  ,p_is_final    IN task_status.is_final%TYPE
+                                                  ,p_position    IN task_status.position%TYPE
+                                                  ,p_status_id   OUT task_status.id%TYPE) IS
+BEGIN
+  INSERT INTO task_status
+    (code
+    ,NAME
+    ,description
+    ,is_final
+    ,position)
+  VALUES
+    (p_code
+    ,p_name
+    ,p_description
+    ,p_is_final
+    ,p_position)
+  RETURNING id INTO p_status_id;
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20060,
+                            'create_task_status_prc: status code "' ||
+                            p_code || '" már létezik.');
+  WHEN OTHERS THEN
+    raise_application_error(-20061,
+                            'create_task_status_prc hiba code = "' ||
+                            p_code || '": ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_board_prc(p_project_id IN board.project_id%TYPE
+                                            ,p_board_name IN board.board_name%TYPE
+                                            ,p_is_default IN board.is_default%TYPE DEFAULT 0
+                                            ,p_position   IN board.position%TYPE
+                                            ,p_board_id   OUT board.id%TYPE) IS
+BEGIN
+  INSERT INTO board
+    (project_id
+    ,board_name
+    ,is_default
+    ,position)
+  VALUES
+    (p_project_id
+    ,p_board_name
+    ,nvl(p_is_default, 0)
+    ,p_position)
+  RETURNING id INTO p_board_id;
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20070,
+                            'create_board_prc: valószínû ütközés a board egyediségén (pl. név vagy pozíció projekten belül). ' ||
+                            '(project_id = ' || p_project_id ||
+                            ', board_name = "' || p_board_name || '")');
+  WHEN OTHERS THEN
+    raise_application_error(-20071,
+                            'create_board_prc hiba (project_id = ' ||
+                            p_project_id || ', board_name = "' ||
+                            p_board_name || '"): ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_column_prc(p_board_id    IN column_def.board_id%TYPE
+                                             ,p_column_name IN column_def.column_name%TYPE
+                                             ,p_wip_limit   IN column_def.wip_limit%TYPE
+                                             ,p_position    IN column_def.position%TYPE
+                                             ,p_status_code IN task_status.code%TYPE
+                                             ,p_column_id   OUT column_def.id%TYPE) IS
+  l_status_id task_status.id%TYPE;
+BEGIN
+  ------------------------------------------------------------------
+  -- 1. Status ID kikeresése a code alapján
+  ------------------------------------------------------------------
+  SELECT id INTO l_status_id FROM task_status WHERE code = p_status_code;
+
+  ------------------------------------------------------------------
+  -- 2. Oszlop beszúrása
+  ------------------------------------------------------------------
+  INSERT INTO column_def
+    (board_id
+    ,column_name
+    ,wip_limit
+    ,position
+    ,status_id)
+  VALUES
+    (p_board_id
+    ,p_column_name
+    ,p_wip_limit
+    ,p_position
+    ,l_status_id)
+  RETURNING id INTO p_column_id;
+
+EXCEPTION
+  WHEN no_data_found THEN
+    raise_application_error(-20080,
+                            'create_column_prc: nincs ilyen task_status code: "' ||
+                            p_status_code || '".');
+  
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20081,
+                            'create_column_prc: ütközés a column_def egyediségén (név vagy pozíció boardon belül). ' ||
+                            '(board_id = ' || p_board_id ||
+                            ', column_name = "' || p_column_name || '")');
+  
+  WHEN OTHERS THEN
+    raise_application_error(-20082,
+                            'create_column_prc hiba (board_id = ' ||
+                            p_board_id || ', column_name = "' ||
+                            p_column_name || '", status_code = "' ||
+                            p_status_code || '"): ' || SQLERRM);
+END;
+/
+
+CREATE OR REPLACE PROCEDURE create_sprint_prc(p_project_id  IN sprint.project_id%TYPE
+                                             ,p_board_id    IN sprint.board_id%TYPE
+                                             ,p_sprint_name IN sprint.sprint_name%TYPE
+                                             ,p_goal        IN sprint.goal%TYPE
+                                             ,p_start_date  IN sprint.start_date%TYPE DEFAULT SYSDATE
+                                             ,p_end_date    IN sprint.end_date%TYPE
+                                             ,p_state       IN sprint.state%TYPE
+                                             ,p_sprint_id   OUT sprint.id%TYPE) IS
+BEGIN
+  INSERT INTO sprint
+    (project_id
+    ,board_id
+    ,sprint_name
+    ,goal
+    ,start_date
+    ,end_date
+    ,state)
+  VALUES
+    (p_project_id
+    ,p_board_id
+    ,p_sprint_name
+    ,p_goal
+    ,p_start_date
+    ,p_end_date
+    ,p_state)
+  RETURNING id INTO p_sprint_id;
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20090,
+                            'create_sprint_prc: ütközés az egyedi constrainten (pl. sprint név / board kombó). ' ||
+                            '(project_id = ' || p_project_id ||
+                            ', board_id = ' || p_board_id ||
+                            ', sprint_name = "' || p_sprint_name || '")');
+  WHEN OTHERS THEN
+    raise_application_error(-20091,
+                            'create_sprint_prc hiba (project_id = ' ||
+                            p_project_id || ', board_id = ' || p_board_id ||
+                            ', sprint_name = "' || p_sprint_name || '"): ' ||
+                            SQLERRM);
+END;
+/
+
+CREATE OR REPLACE PROCEDURE create_task_prc(p_project_id    IN task.project_id%TYPE
+                                           ,p_board_id      IN task.board_id%TYPE
+                                           ,p_column_id     IN task.column_id%TYPE
+                                           ,p_sprint_id     IN task.sprint_id%TYPE
+                                           ,p_created_by    IN task.created_by%TYPE
+                                           ,p_title         IN task.title%TYPE
+                                           ,p_description   IN task.description%TYPE DEFAULT NULL
+                                           ,p_status_id        IN task.status_id%TYPE
+                                           ,p_priority      IN task.priority%TYPE DEFAULT NULL
+                                           ,p_estimated_min IN task.estimated_min%TYPE DEFAULT NULL
+                                           ,p_due_date      IN task.due_date%TYPE DEFAULT NULL
+                                           ,p_task_id       OUT task.id%TYPE) IS
+  l_task_key task.task_key%TYPE;
+BEGIN
+  ------------------------------------------------------------------
+  -- 1. Task key generálása projekt alapján (PMA-0001, DEVOPS-0001, ...)
+  ------------------------------------------------------------------
+  l_task_key := build_next_task_key_fnc(p_project_id);
+
+  ------------------------------------------------------------------
+  -- 2. Task beszúrása
+  ------------------------------------------------------------------
+  INSERT INTO task
+    (project_id
+    ,board_id
+    ,column_id
+    ,sprint_id
+    ,task_key
+    ,title
+    ,description
+    ,status_id
+    ,priority
+    ,estimated_min
+    ,due_date
+    ,created_by)
+  VALUES
+    (p_project_id
+    ,p_board_id
+    ,p_column_id
+    ,p_sprint_id
+    ,l_task_key
+    ,p_title
+    ,p_description
+    ,p_status_id
+    ,p_priority
+    ,p_estimated_min
+    ,p_due_date
+    ,p_created_by)
+  RETURNING id INTO p_task_id;
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20100,
+                            'create_task_prc: ütközés az egyedi constrainten (valószínûleg task_key). ' ||
+                            '(project_id = ' || p_project_id ||
+                            ', task_key = "' || l_task_key || '")');
+  WHEN OTHERS THEN
+    raise_application_error(-20101,
+                            'create_task_prc hiba (project_id = ' ||
+                            p_project_id || ', title = "' || p_title ||
+                            '"): ' || SQLERRM);
+END;
+/
+
+CREATE OR REPLACE PROCEDURE assign_user_to_task_prc(p_task_id IN task_assignment.task_id%TYPE
+                                                   ,p_user_id IN task_assignment.user_id%TYPE) IS
+BEGIN
+  INSERT INTO task_assignment
+    (task_id
+    ,user_id
+    ,assigned_at)
+  VALUES
+    (p_task_id
+    ,p_user_id
+    ,SYSDATE);
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20110,
+                            'assign_user_to_task_prc: a user már hozzá van rendelve ehhez a taskhoz. ' ||
+                            '(task_id = ' || p_task_id || ', user_id = ' ||
+                            p_user_id || ')');
+  WHEN OTHERS THEN
+    raise_application_error(-20111,
+                            'assign_user_to_task_prc hiba (task_id = ' ||
+                            p_task_id || ', user_id = ' || p_user_id ||
+                            '): ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_label_prc(p_project_id IN labels.project_id%TYPE
+                                            ,p_label_name IN labels.label_name%TYPE
+                                            ,p_color      IN labels.color%TYPE
+                                            ,p_label_id   OUT labels.id%TYPE) IS
+BEGIN
+  INSERT INTO labels
+    (project_id
+    ,label_name
+    ,color)
+  VALUES
+    (p_project_id
+    ,p_label_name
+    ,p_color)
+  RETURNING id INTO p_label_id;
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20120,
+                            'create_label_prc: valószínû ütközés (pl. label név projekten belül). ' ||
+                            '(project_id = ' || p_project_id ||
+                            ', label_name = "' || p_label_name || '")');
+  WHEN OTHERS THEN
+    raise_application_error(-20121,
+                            'create_label_prc hiba (project_id = ' ||
+                            p_project_id || ', label_name = "' ||
+                            p_label_name || '"): ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE assign_label_to_task_prc(p_task_id  IN label_task.task_id%TYPE
+                                                    ,p_label_id IN label_task.label_id%TYPE) IS
+BEGIN
+  INSERT INTO label_task
+    (task_id
+    ,label_id)
+  VALUES
+    (p_task_id
+    ,p_label_id);
+
+EXCEPTION
+  WHEN dup_val_on_index THEN
+    raise_application_error(-20130,
+                            'assign_label_to_task_prc: ez a label már rá van téve a taskra. ' ||
+                            '(task_id = ' || p_task_id || ', label_id = ' ||
+                            p_label_id || ')');
+  WHEN OTHERS THEN
+    raise_application_error(-20131,
+                            'assign_label_to_task_prc hiba (task_id = ' ||
+                            p_task_id || ', label_id = ' || p_label_id ||
+                            '): ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_comment_prc(p_task_id      IN app_comment.task_id%TYPE
+                                              ,p_user_id      IN app_comment.user_id%TYPE
+                                              ,p_comment_body IN app_comment.comment_body%TYPE
+                                              ,p_comment_id   OUT app_comment.id%TYPE) IS
+BEGIN
+  INSERT INTO app_comment
+    (task_id
+    ,user_id
+    ,comment_body)
+  VALUES
+    (p_task_id
+    ,p_user_id
+    ,p_comment_body)
+  RETURNING id INTO p_comment_id;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    raise_application_error(-20140,
+                            'create_comment_prc hiba (task_id = ' ||
+                            p_task_id || ', user_id = ' || p_user_id ||
+                            '): ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_integration_prc(p_project_id     IN integration.project_id%TYPE
+                                                  ,p_provider       IN integration.provider%TYPE
+                                                  ,p_repo_full_name IN integration.repo_full_name%TYPE
+                                                  ,p_access_token   IN integration.access_token%TYPE
+                                                  ,p_webhook_secret IN integration.webhook_secret%TYPE
+                                                  ,p_is_enabled     IN integration.is_enabled%TYPE DEFAULT 1
+                                                  ,p_integration_id OUT integration.id%TYPE) IS
+BEGIN
+  INSERT INTO integration
+    (project_id
+    ,provider
+    ,repo_full_name
+    ,access_token
+    ,webhook_secret
+    ,is_enabled)
+  VALUES
+    (p_project_id
+    ,p_provider
+    ,p_repo_full_name
+    ,p_access_token
+    ,p_webhook_secret
+    ,nvl(p_is_enabled, 1))
+  RETURNING id INTO p_integration_id;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    raise_application_error(-20160,
+                            'create_integration_prc hiba (project_id = ' ||
+                            p_project_id || ', provider = "' || p_provider ||
+                            '", repo = "' || p_repo_full_name || '"): ' ||
+                            SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_commit_link_prc(p_task_id        IN commit_link.task_id%TYPE
+                                                  ,p_provider       IN commit_link.provider%TYPE
+                                                  ,p_repo_full_name IN commit_link.repo_full_name%TYPE
+                                                  ,p_commit_sha     IN commit_link.commit_sha%TYPE
+                                                  ,p_message        IN commit_link.message%TYPE
+                                                  ,p_author_email   IN commit_link.author_email%TYPE
+                                                  ,p_committed_at   IN commit_link.committed_at%TYPE) IS
+BEGIN
+  INSERT INTO commit_link
+    (task_id
+    ,provider
+    ,repo_full_name
+    ,commit_sha
+    ,message
+    ,author_email
+    ,committed_at)
+  VALUES
+    (p_task_id
+    ,p_provider
+    ,p_repo_full_name
+    ,p_commit_sha
+    ,p_message
+    ,p_author_email
+    ,p_committed_at);
+
+EXCEPTION
+  WHEN OTHERS THEN
+    raise_application_error(-20170,
+                            'create_commit_link_prc hiba (task_id = ' ||
+                            p_task_id || ', commit_sha = "' || p_commit_sha ||
+                            '"): ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_pr_link_prc(p_task_id        IN pr_link.task_id%TYPE
+                                              ,p_provider       IN pr_link.provider%TYPE
+                                              ,p_repo_full_name IN pr_link.repo_full_name%TYPE
+                                              ,p_pr_number      IN pr_link.pr_number%TYPE
+                                              ,p_title          IN pr_link.title%TYPE
+                                              ,p_state          IN pr_link.state%TYPE
+                                              ,p_created_at     IN pr_link.created_at%TYPE
+                                              ,p_merged_at      IN pr_link.merged_at%TYPE
+                                              ,p_pr_id          OUT pr_link.id%TYPE) IS
+BEGIN
+  INSERT INTO pr_link
+    (task_id
+    ,provider
+    ,repo_full_name
+    ,pr_number
+    ,title
+    ,state
+    ,created_at
+    ,merged_at)
+  VALUES
+    (p_task_id
+    ,p_provider
+    ,p_repo_full_name
+    ,p_pr_number
+    ,p_title
+    ,p_state
+    ,p_created_at
+    ,p_merged_at)
+  RETURNING id INTO p_pr_id;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    raise_application_error(-20180,
+                            'create_pr_link_prc hiba (task_id = ' ||
+                            p_task_id || ', pr_number = ' || p_pr_number ||
+                            '): ' || SQLERRM);
+END;
+/
+CREATE OR REPLACE PROCEDURE create_attachment_prc(p_task_id         IN attachment.task_id%TYPE
+                                                 ,p_uploaded_by     IN attachment.uploaded_by%TYPE
+                                                 ,p_file_name       IN attachment.file_name%TYPE
+                                                 ,p_content_type    IN attachment.content_type%TYPE
+                                                 ,p_size_bytes      IN attachment.size_bytes%TYPE
+                                                 ,p_storage_path    IN attachment.storage_path%TYPE
+                                                 ,p_attachment_type IN attachment.attachment_type%TYPE
+                                                 ,p_attachment_id   OUT attachment.id%TYPE) IS
+BEGIN
+  INSERT INTO attachment
+    (task_id
+    ,uploaded_by
+    ,file_name
+    ,content_type
+    ,size_bytes
+    ,storage_path
+    ,attachment_type)
+  VALUES
+    (p_task_id
+    ,p_uploaded_by
+    ,p_file_name
+    ,p_content_type
+    ,p_size_bytes
+    ,p_storage_path
+    ,p_attachment_type)
+  RETURNING id INTO p_attachment_id;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    raise_application_error(-20190,
+                            'create_attachment_prc hiba (task_id = ' ||
+                            p_task_id || ', file_name = "' || p_file_name ||
+                            '"): ' || SQLERRM);
+END;
+/
+
+
+
+
 
 DECLARE
   -- szerepkör ID-k
@@ -1028,18 +1639,8 @@ DECLARE
   v_dev_id   app_user.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- PROJEKTEK LÉTREHOZÁSA
+  -- FELHASZNÁLÓ ID-K BETÖLTÉSE
   --------------------------------------------------------------------
-  create_project_prc(p_project_name => 'PMA - Projektmenedzsment app', p_proj_key => 'PMA', p_description => 'Saját hosztolású projektmenedzsment alkalmazás (kanban + statisztikák + Git integráció).', p_owner_id => (
-    SELECT id
-      FROM app_user
-     WHERE email = 'admin@example.com'), p_project_id => v_pma_id);
-
-  create_project_prc(p_project_name => 'DEVOPS - Demo projekt', p_proj_key => 'DEVOPS', p_description => 'Demo projekt DevOps pipeline-ok és issue tracking kipróbálásához.', p_owner_id => (
-    SELECT id
-      FROM app_user
-     WHERE email = 'peter@example.com'), p_project_id => v_devops_id);
-
   SELECT id
     INTO v_admin_id
     FROM app_user
@@ -1051,6 +1652,21 @@ BEGIN
    WHERE email = 'peter@example.com';
 
   SELECT id INTO v_dev_id FROM app_user WHERE email = 'dev@example.com';
+
+  --------------------------------------------------------------------
+  -- PROJEKTEK LÉTREHOZÁSA
+  --------------------------------------------------------------------
+  create_project_prc(p_project_name => 'PMA - Projektmenedzsment app',
+                     p_proj_key     => 'PMA',
+                     p_description  => 'Saját hosztolású projektmenedzsment alkalmazás (kanban + statisztikák + Git integráció).',
+                     p_owner_id     => v_admin_id,
+                     p_project_id   => v_pma_id);
+
+  create_project_prc(p_project_name => 'DEVOPS - Demo projekt',
+                     p_proj_key     => 'DEVOPS',
+                     p_description  => 'Demo projekt DevOps pipeline-ok és issue tracking kipróbálásához.',
+                     p_owner_id     => v_peter_id,
+                     p_project_id   => v_devops_id);
 
   --------------------------------------------------------------------
   -- PROJEKT TAGSÁGOK (PROJECT_MEMBER)
@@ -1078,559 +1694,460 @@ END;
 /
 
 
--------------------------------------------------------------------------------
--- TASK STATUSOK
--------------------------------------------------------------------------------
 
-INSERT INTO task_status
-  (code
-  ,NAME
-  ,description
-  ,is_final
-  ,position)
-VALUES
-  ('BACKLOG'
-  ,'Backlog'
-  ,'Ötletek, még nem tervezett feladatok.'
-  ,0
-  ,1);
+DECLARE
+  -- projektek
+  v_pma_id    app_project.id%TYPE;
+  v_devops_id app_project.id%TYPE;
 
-INSERT INTO task_status
-  (code
-  ,NAME
-  ,description
-  ,is_final
-  ,position)
-VALUES
-  ('TODO'
-  ,'To Do'
-  ,'Következõ sprintben megvalósítandó feladatok.'
-  ,0
-  ,2);
+  -- státusz ID-k (nem kötelezõ felhasználni, de eltároljuk)
+  v_backlog_id    task_status.id%TYPE;
+  v_todo_id       task_status.id%TYPE;
+  v_inprogress_id task_status.id%TYPE;
+  v_review_id     task_status.id%TYPE;
+  v_done_id       task_status.id%TYPE;
 
-INSERT INTO task_status
-  (code
-  ,NAME
-  ,description
-  ,is_final
-  ,position)
-VALUES
-  ('IN_PROGRESS'
-  ,'In Progress'
-  ,'Folyamatban lévõ munka.'
-  ,0
-  ,3);
+  -- board ID-k
+  v_pma_board_id    board.id%TYPE;
+  v_devops_board_id board.id%TYPE;
 
-INSERT INTO task_status
-  (code
-  ,NAME
-  ,description
-  ,is_final
-  ,position)
-VALUES
-  ('REVIEW'
-  ,'Review'
-  ,'Kód review / tesztelés alatt.'
-  ,0
-  ,4);
+  -- oszlop ID-k (ha késõbb kéne)
+  v_col_backlog_id column_def.id%TYPE;
+  v_col_todo_id    column_def.id%TYPE;
+  v_col_inprog_id  column_def.id%TYPE;
+  v_col_done_id    column_def.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- 1. TASK STATUSOK
+  --------------------------------------------------------------------
+  create_task_status_prc(p_code        => 'BACKLOG',
+                         p_name        => 'Backlog',
+                         p_description => 'Ötletek, még nem tervezett feladatok.',
+                         p_is_final    => 0,
+                         p_position    => 1,
+                         p_status_id   => v_backlog_id);
 
-INSERT INTO task_status
-  (code
-  ,NAME
-  ,description
-  ,is_final
-  ,position)
-VALUES
-  ('DONE'
-  ,'Done'
-  ,'Befejezett, lezárt feladatok.'
-  ,1
-  ,5);
+  create_task_status_prc(p_code        => 'TODO',
+                         p_name        => 'To Do',
+                         p_description => 'Következõ sprintben megvalósítandó feladatok.',
+                         p_is_final    => 0,
+                         p_position    => 2,
+                         p_status_id   => v_todo_id);
 
--------------------------------------------------------------------------------
--- LABELS (címkék) – PMA projekthez
--------------------------------------------------------------------------------
+  create_task_status_prc(p_code        => 'IN_PROGRESS',
+                         p_name        => 'In Progress',
+                         p_description => 'Folyamatban lévõ munka.',
+                         p_is_final    => 0,
+                         p_position    => 3,
+                         p_status_id   => v_inprogress_id);
 
-INSERT INTO labels
-  (project_id
-  ,label_name
-  ,color)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,'backend'
-  ,'#1F77B4');
+  create_task_status_prc(p_code        => 'REVIEW',
+                         p_name        => 'Review',
+                         p_description => 'Kód review / tesztelés alatt.',
+                         p_is_final    => 0,
+                         p_position    => 4,
+                         p_status_id   => v_review_id);
 
-INSERT INTO labels
-  (project_id
-  ,label_name
-  ,color)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,'frontend'
-  ,'#FF7F0E');
+  create_task_status_prc(p_code        => 'DONE',
+                         p_name        => 'Done',
+                         p_description => 'Befejezett, lezárt feladatok.',
+                         p_is_final    => 1,
+                         p_position    => 5,
+                         p_status_id   => v_done_id);
 
-INSERT INTO labels
-  (project_id
-  ,label_name
-  ,color)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,'bug'
-  ,'#D62728');
+  --------------------------------------------------------------------
+  -- 2. PROJEKT ID-K BETÖLTÉSE
+  --------------------------------------------------------------------
+  SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
 
--------------------------------------------------------------------------------
--- BOARDOK
--------------------------------------------------------------------------------
+  SELECT id INTO v_devops_id FROM app_project WHERE proj_key = 'DEVOPS';
 
-INSERT INTO board
-  (project_id
-  ,board_name
-  ,is_default
-  ,position)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,'PMA Main Board'
-  ,1
-  ,1);
+  --------------------------------------------------------------------
+  -- 3. BOARDOK LÉTREHOZÁSA
+  --------------------------------------------------------------------
+  create_board_prc(p_project_id => v_pma_id,
+                   p_board_name => 'PMA Main Board',
+                   p_is_default => 1,
+                   p_position   => 1,
+                   p_board_id   => v_pma_board_id);
 
-INSERT INTO board
-  (project_id
-  ,board_name
-  ,is_default
-  ,position)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'DEVOPS')
-  ,'DEVOPS Board'
-  ,1
-  ,1);
+  create_board_prc(p_project_id => v_devops_id,
+                   p_board_name => 'DEVOPS Board',
+                   p_is_default => 1,
+                   p_position   => 1,
+                   p_board_id   => v_devops_board_id);
 
--------------------------------------------------------------------------------
--- OSZLOPOK (COLUMN_DEF) – PMA board
--------------------------------------------------------------------------------
+  --------------------------------------------------------------------
+  -- 4. OSZLOPOK A PMA MAIN BOARD-ON
+  --------------------------------------------------------------------
 
--- BACKLOG
-INSERT INTO column_def
-  (board_id
-  ,column_name
-  ,wip_limit
-  ,position
-  ,status_id)
-VALUES
-  ((SELECT b.id
-     FROM board b
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board')
-  ,'Backlog'
-  ,NULL
-  ,1
-  ,(SELECT id FROM task_status WHERE code = 'BACKLOG'));
+  -- BACKLOG
+  create_column_prc(p_board_id    => v_pma_board_id,
+                    p_column_name => 'Backlog',
+                    p_wip_limit   => NULL,
+                    p_position    => 1,
+                    p_status_code => 'BACKLOG',
+                    p_column_id   => v_col_backlog_id);
 
--- TODO
-INSERT INTO column_def
-  (board_id
-  ,column_name
-  ,wip_limit
-  ,position
-  ,status_id)
-VALUES
-  ((SELECT b.id
-     FROM board b
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board')
-  ,'To Do'
-  ,5
-  ,2
-  ,(SELECT id FROM task_status WHERE code = 'TODO'));
+  -- TODO
+  create_column_prc(p_board_id    => v_pma_board_id,
+                    p_column_name => 'To Do',
+                    p_wip_limit   => 5,
+                    p_position    => 2,
+                    p_status_code => 'TODO',
+                    p_column_id   => v_col_todo_id);
 
--- IN PROGRESS
-INSERT INTO column_def
-  (board_id
-  ,column_name
-  ,wip_limit
-  ,position
-  ,status_id)
-VALUES
-  ((SELECT b.id
-     FROM board b
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board')
-  ,'In Progress'
-  ,3
-  ,3
-  ,(SELECT id FROM task_status WHERE code = 'IN_PROGRESS'));
+  -- IN PROGRESS
+  create_column_prc(p_board_id    => v_pma_board_id,
+                    p_column_name => 'In Progress',
+                    p_wip_limit   => 3,
+                    p_position    => 3,
+                    p_status_code => 'IN_PROGRESS',
+                    p_column_id   => v_col_inprog_id);
 
--- DONE
-INSERT INTO column_def
-  (board_id
-  ,column_name
-  ,wip_limit
-  ,position
-  ,status_id)
-VALUES
-  ((SELECT b.id
-     FROM board b
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board')
-  ,'Done'
-  ,NULL
-  ,4
-  ,(SELECT id FROM task_status WHERE code = 'DONE'));
+  -- DONE
+  create_column_prc(p_board_id    => v_pma_board_id,
+                    p_column_name => 'Done',
+                    p_wip_limit   => NULL,
+                    p_position    => 4,
+                    p_status_code => 'DONE',
+                    p_column_id   => v_col_done_id);
+END;
+/
 
--------------------------------------------------------------------------------
--- SPRINT – PMA
--------------------------------------------------------------------------------
 
-INSERT INTO sprint
-  (project_id
-  ,board_id
-  ,sprint_name
-  ,goal
-  ,start_date
-  ,end_date
-  ,state)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,(SELECT b.id
-     FROM board b
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board')
-  ,'Sprint 1'
-  ,'Alap adatbázis és backend váz kialakítása.'
-  ,DATE '2025-01-01'
-  ,DATE '2025-01-14'
-  ,'ACTIVE');
+DECLARE
+  -- projektek / board / sprint
+  v_pma_id       app_project.id%TYPE;
+  v_pma_board_id board.id%TYPE;
+  v_sprint1_id   sprint.id%TYPE;
 
--------------------------------------------------------------------------------
--- TASKOK – PMA (task_key-t a függvény számolja, ID-t + created_at-et triggerek)
--------------------------------------------------------------------------------
+  -- oszlopok
+  v_col_todo_id   column_def.id%TYPE;
+  v_col_inprog_id column_def.id%TYPE;
+  v_col_done_id   column_def.id%TYPE;
 
--- 1. task – TODO
-INSERT INTO task
-  (project_id
-  ,board_id
-  ,column_id
-  ,sprint_id
-  ,created_by
-  ,task_key
-  ,title
-  ,description
-  ,status_id
-  ,priority
-  ,estimated_min
-  ,due_date
-  ,position)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,(SELECT b.id
-     FROM board b
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board')
-  ,(SELECT c.id
-     FROM column_def c
-     JOIN board b
-       ON c.board_id = b.id
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board'
-      AND c.column_name = 'To Do')
-  ,(SELECT s.id
-     FROM sprint s
-     JOIN app_project p
-       ON p.id = s.project_id
-    WHERE p.proj_key = 'PMA'
-      AND s.sprint_name = 'Sprint 1')
-  ,(SELECT id FROM app_user WHERE email = 'peter@example.com')
-  ,build_next_task_key_fnc((SELECT id
-                             FROM app_project
-                            WHERE proj_key = 'PMA'))
-  ,'DB séma kialakítása'
-  ,'Az alap PMA adatbázis táblák és kapcsolatok létrehozása.'
-  ,(SELECT id FROM task_status WHERE code = 'TODO')
-  ,'HIGH'
-  ,240
-  ,DATE '2025-01-07'
-  ,1);
+  -- user ID-k
+  v_peter_id app_user.id%TYPE;
+  v_dev_id   app_user.id%TYPE;
+  v_admin_id app_user.id%TYPE;
 
--- 2. task – IN_PROGRESS
-INSERT INTO task
-  (project_id
-  ,board_id
-  ,column_id
-  ,sprint_id
-  ,created_by
-  ,task_key
-  ,title
-  ,description
-  ,status_id
-  ,priority
-  ,estimated_min
-  ,due_date
-  ,position)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,(SELECT b.id
-     FROM board b
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board')
-  ,(SELECT c.id
-     FROM column_def c
-     JOIN board b
-       ON c.board_id = b.id
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board'
-      AND c.column_name = 'In Progress')
-  ,(SELECT s.id
-     FROM sprint s
-     JOIN app_project p
-       ON p.id = s.project_id
-    WHERE p.proj_key = 'PMA'
-      AND s.sprint_name = 'Sprint 1')
-  ,(SELECT id FROM app_user WHERE email = 'dev@example.com')
-  ,build_next_task_key_fnc((SELECT id
-                             FROM app_project
-                            WHERE proj_key = 'PMA'))
-  ,'Historizáció implementálása'
-  ,'DML flag, version, history tábla és triggerek beépítése a kritikus táblákra.'
-  ,(SELECT id FROM task_status WHERE code = 'IN_PROGRESS')
-  ,'MEDIUM'
-  ,180
-  ,DATE '2025-01-10'
-  ,2);
+  -- status ID-k
+  v_status_todo_id   task_status.id%TYPE;
+  v_status_inprog_id task_status.id%TYPE;
+  v_status_done_id   task_status.id%TYPE;
 
--- 3. task – DONE
-INSERT INTO task
-  (project_id
-  ,board_id
-  ,column_id
-  ,sprint_id
-  ,created_by
-  ,task_key
-  ,title
-  ,description
-  ,status_id
-  ,priority
-  ,estimated_min
-  ,due_date
-  ,closed_at
-  ,position)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,(SELECT b.id
-     FROM board b
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board')
-  ,(SELECT c.id
-     FROM column_def c
-     JOIN board b
-       ON c.board_id = b.id
-     JOIN app_project p
-       ON p.id = b.project_id
-    WHERE p.proj_key = 'PMA'
-      AND b.board_name = 'PMA Main Board'
-      AND c.column_name = 'Done')
-  ,(SELECT s.id
-     FROM sprint s
-     JOIN app_project p
-       ON p.id = s.project_id
-    WHERE p.proj_key = 'PMA'
-      AND s.sprint_name = 'Sprint 1')
-  ,(SELECT id FROM app_user WHERE email = 'admin@example.com')
-  ,build_next_task_key_fnc((SELECT id
-                             FROM app_project
-                            WHERE proj_key = 'PMA'))
-  ,'Alap felhasználók felvétele'
-  ,'Admin és fejlesztõ felhasználók létrehozása teszteléshez.'
-  ,(SELECT id FROM task_status WHERE code = 'DONE')
-  ,'LOW'
-  ,60
-  ,DATE '2024-12-20'
-  ,DATE '2024-12-21'
-  ,3);
+  -- task ID-k
+  v_task1_id task.id%TYPE;
+  v_task2_id task.id%TYPE;
+  v_task3_id task.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- 1. PMA projekt, board, oszlopok, user-ek, státuszok betöltése
+  --------------------------------------------------------------------
+  SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
 
--------------------------------------------------------------------------------
--- TASK ASSIGNMENT
--------------------------------------------------------------------------------
+  SELECT b.id
+    INTO v_pma_board_id
+    FROM board b
+   WHERE b.project_id = v_pma_id
+     AND b.board_name = 'PMA Main Board';
 
-INSERT INTO task_assignment
-  (task_id
-  ,user_id)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'DB séma kialakítása')
-  ,(SELECT id FROM app_user WHERE email = 'peter@example.com'));
+  SELECT c.id
+    INTO v_col_todo_id
+    FROM column_def c
+   WHERE c.board_id = v_pma_board_id
+     AND c.column_name = 'To Do';
 
-INSERT INTO task_assignment
-  (task_id
-  ,user_id)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'Historizáció implementálása')
-  ,(SELECT id FROM app_user WHERE email = 'dev@example.com'));
+  SELECT c.id
+    INTO v_col_inprog_id
+    FROM column_def c
+   WHERE c.board_id = v_pma_board_id
+     AND c.column_name = 'In Progress';
 
-INSERT INTO task_assignment
-  (task_id
-  ,user_id)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'Alap felhasználók felvétele')
-  ,(SELECT id FROM app_user WHERE email = 'admin@example.com'));
+  SELECT c.id
+    INTO v_col_done_id
+    FROM column_def c
+   WHERE c.board_id = v_pma_board_id
+     AND c.column_name = 'Done';
 
--------------------------------------------------------------------------------
--- LABEL_TASK (feladatok címkézése)
--------------------------------------------------------------------------------
+  SELECT id
+    INTO v_peter_id
+    FROM app_user
+   WHERE email = 'peter@example.com';
 
-INSERT INTO label_task
-  (task_id
-  ,label_id)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'DB séma kialakítása')
-  ,(SELECT l.id
-     FROM labels l
-     JOIN app_project p
-       ON p.id = l.project_id
-    WHERE p.proj_key = 'PMA'
-      AND l.label_name = 'backend'));
+  SELECT id INTO v_dev_id FROM app_user WHERE email = 'dev@example.com';
 
-INSERT INTO label_task
-  (task_id
-  ,label_id)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'Historizáció implementálása')
-  ,(SELECT l.id
-     FROM labels l
-     JOIN app_project p
-       ON p.id = l.project_id
-    WHERE p.proj_key = 'PMA'
-      AND l.label_name = 'backend'));
+  SELECT id
+    INTO v_admin_id
+    FROM app_user
+   WHERE email = 'admin@example.com';
 
-INSERT INTO label_task
-  (task_id
-  ,label_id)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'Alap felhasználók felvétele')
-  ,(SELECT l.id
-     FROM labels l
-     JOIN app_project p
-       ON p.id = l.project_id
-    WHERE p.proj_key = 'PMA'
-      AND l.label_name = 'bug'));
+  SELECT id INTO v_status_todo_id FROM task_status WHERE code = 'TODO';
 
--------------------------------------------------------------------------------
--- KOMMENTEK (app_comment – ID, created_at, mod_user, dml_flag, version triggerek)
--------------------------------------------------------------------------------
+  SELECT id
+    INTO v_status_inprog_id
+    FROM task_status
+   WHERE code = 'IN_PROGRESS';
 
-INSERT INTO app_comment
-  (task_id
-  ,user_id
-  ,comment_body)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'DB séma kialakítása')
-  ,(SELECT id FROM app_user WHERE email = 'admin@example.com')
-  ,'Kérlek nézd át a constraint-eket és a history triggert is.');
+  SELECT id INTO v_status_done_id FROM task_status WHERE code = 'DONE';
 
-INSERT INTO app_comment
-  (task_id
-  ,user_id
-  ,comment_body)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'Historizáció implementálása')
-  ,(SELECT id FROM app_user WHERE email = 'peter@example.com')
-  ,'Szerintem a D jelölés DELETE-nél jól mûködik, nézzük meg még egyszer a logot.');
+  --------------------------------------------------------------------
+  -- 2. Sprint 1 létrehozása – PMA
+  --------------------------------------------------------------------
+  create_sprint_prc(p_project_id  => v_pma_id,
+                    p_board_id    => v_pma_board_id,
+                    p_sprint_name => 'Sprint 1',
+                    p_goal        => 'Alap adatbázis és backend váz kialakítása.',
+                    p_start_date  => DATE '2025-01-01',
+                    p_end_date    => DATE '2025-01-14',
+                    p_state       => 'ACTIVE',
+                    p_sprint_id   => v_sprint1_id);
 
--------------------------------------------------------------------------------
--- INTEGRÁCIÓ – GITHUB
--------------------------------------------------------------------------------
+  --------------------------------------------------------------------
+  -- 3. TASKOK – PMA
+  --------------------------------------------------------------------
 
-INSERT INTO integration
-  (project_id
-  ,provider
-  ,repo_full_name
-  ,access_token
-  ,webhook_secret
-  ,is_enabled)
-VALUES
-  ((SELECT id FROM app_project WHERE proj_key = 'PMA')
-  ,'GITHUB'
-  ,'trunkpeter/pma-demo'
-  ,'dummy-access-token'
-  ,'dummy-webhook-secret'
-  ,1);
+  -- 1. task – TODO: "DB séma kialakítása"
+  create_task_prc(p_project_id    => v_pma_id,
+                  p_board_id      => v_pma_board_id,
+                  p_column_id     => v_col_todo_id,
+                  p_sprint_id     => v_sprint1_id,
+                  p_created_by    => v_peter_id,
+                  p_title         => 'DB séma kialakítása',
+                  p_description   => 'Az alap PMA adatbázis táblák és kapcsolatok létrehozása.',
+                  p_status_id     => v_status_todo_id,
+                  p_priority      => 'HIGH',
+                  p_estimated_min => 240,
+                  p_due_date      => DATE '2025-01-07',
+                  p_task_id       => v_task1_id);
 
--------------------------------------------------------------------------------
--- COMMIT / PR / ATTACHMENT
--------------------------------------------------------------------------------
+  -- 2. task – IN_PROGRESS: "Historizáció implementálása"
+  create_task_prc(p_project_id    => v_pma_id,
+                  p_board_id      => v_pma_board_id,
+                  p_column_id     => v_col_inprog_id,
+                  p_sprint_id     => v_sprint1_id,
+                  p_created_by    => v_dev_id,
+                  p_title         => 'Historizáció implementálása',
+                  p_description   => 'DML flag, version, history tábla és triggerek beépítése a kritikus táblákra.',
+                  p_status_id     => v_status_inprog_id,
+                  p_priority      => 'MEDIUM',
+                  p_estimated_min => 180,
+                  p_due_date      => DATE '2025-01-10',
+                  p_task_id       => v_task2_id);
 
--- Commit link
-INSERT INTO commit_link
-  (task_id
-  ,provider
-  ,repo_full_name
-  ,commit_sha
-  ,message
-  ,author_email
-  ,committed_at)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'Historizáció implementálása')
-  ,'GITHUB'
-  ,'trunkpeter/pma-demo'
-  ,'abcdef1234567890abcdef1234567890abcdef12'
-  ,'Add history triggers and audit columns'
-  ,'dev@example.com'
-  ,DATE '2025-01-05');
-COMMIT;
--- PR link
-INSERT INTO pr_link
-  (task_id
-  ,provider
-  ,repo_full_name
-  ,pr_number
-  ,title
-  ,state
-  ,created_at
-  ,merged_at)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'Historizáció implementálása')
-  ,'GITHUB'
-  ,'trunkpeter/pma-demo'
-  ,42
-  ,'Feature: historisation for core tables'
-  ,'MERGED'
-  ,DATE '2025-01-06'
-  ,DATE '2025-01-07');
+  -- 3. task – DONE: "Alap felhasználók felvétele"
+  create_task_prc(p_project_id    => v_pma_id,
+                  p_board_id      => v_pma_board_id,
+                  p_column_id     => v_col_done_id,
+                  p_sprint_id     => v_sprint1_id,
+                  p_created_by    => v_admin_id,
+                  p_title         => 'Alap felhasználók felvétele',
+                  p_description   => 'Admin és fejlesztõ felhasználók létrehozása teszteléshez.',
+                  p_status_id     => v_status_done_id,
+                  p_priority      => 'LOW',
+                  p_estimated_min => 60,
+                  p_due_date      => DATE '2024-12-20',
+                  p_task_id       => v_task3_id);
 
--- Attachment
-INSERT INTO attachment
-  (task_id
-  ,uploaded_by
-  ,file_name
-  ,content_type
-  ,size_bytes
-  ,storage_path
-  ,attachment_type)
-VALUES
-  ((SELECT t.id FROM task t WHERE t.title = 'DB séma kialakítása')
-  ,(SELECT id FROM app_user WHERE email = 'peter@example.com')
-  ,'db_schema_v1.png'
-  ,'image/png'
-  ,123456
-  ,'/attachments/db_schema_v1.png'
-  ,'DESIGN');
+  UPDATE task SET position = 1 WHERE id = v_task1_id;
+  UPDATE task SET position = 2 WHERE id = v_task2_id;
+
+  UPDATE task
+     SET position  = 3
+        ,closed_at = DATE '2024-12-21'
+   WHERE id = v_task3_id;
+
+  --------------------------------------------------------------------
+  -- 4. TASK ASSIGNMENT – hozzárendelések
+  --------------------------------------------------------------------
+  assign_user_to_task_prc(p_task_id => v_task1_id, p_user_id => v_peter_id);
+
+  assign_user_to_task_prc(p_task_id => v_task2_id, p_user_id => v_dev_id);
+
+  assign_user_to_task_prc(p_task_id => v_task3_id, p_user_id => v_admin_id);
+END;
+/
+
+
+DECLARE
+  -- projekt
+  v_pma_id app_project.id%TYPE;
+  
+  -- label ID-k
+  v_label_backend_id  labels.id%TYPE;
+  v_label_frontend_id labels.id%TYPE;
+  v_label_bug_id      labels.id%TYPE;
+  
+  -- task ID-k
+  v_task_db_schema_id task.id%TYPE;
+  v_task_hist_id      task.id%TYPE;
+  v_task_users_id     task.id%TYPE;
+  
+  -- user ID-k
+  v_admin_id app_user.id%TYPE;
+  v_peter_id app_user.id%TYPE;
+  
+  v_comment1_id app_comment.id%TYPE;
+  v_comment2_id app_comment.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- 1. PMA projekt, taskok és userek betöltése
+  --------------------------------------------------------------------
+  SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
+
+  SELECT id
+    INTO v_task_db_schema_id
+    FROM task
+   WHERE title = 'DB séma kialakítása';
+
+  SELECT id
+    INTO v_task_hist_id
+    FROM task
+   WHERE title = 'Historizáció implementálása';
+
+  SELECT id
+    INTO v_task_users_id
+    FROM task
+   WHERE title = 'Alap felhasználók felvétele';
+
+  SELECT id
+    INTO v_admin_id
+    FROM app_user
+   WHERE email = 'admin@example.com';
+
+  SELECT id
+    INTO v_peter_id
+    FROM app_user
+   WHERE email = 'peter@example.com';
+
+  --------------------------------------------------------------------
+  -- 2. LABELS – PMA projekthez
+  --------------------------------------------------------------------
+  create_label_prc(p_project_id => v_pma_id,
+                   p_label_name => 'backend',
+                   p_color      => '#1F77B4',
+                   p_label_id   => v_label_backend_id);
+
+  create_label_prc(p_project_id => v_pma_id,
+                   p_label_name => 'frontend',
+                   p_color      => '#FF7F0E',
+                   p_label_id   => v_label_frontend_id);
+
+  create_label_prc(p_project_id => v_pma_id,
+                   p_label_name => 'bug',
+                   p_color      => '#D62728',
+                   p_label_id   => v_label_bug_id);
+
+  --------------------------------------------------------------------
+  -- 3. LABEL_TASK – feladatok címkézése
+  --------------------------------------------------------------------
+  -- DB séma kialakítása -> backend
+  assign_label_to_task_prc(p_task_id  => v_task_db_schema_id,
+                           p_label_id => v_label_backend_id);
+
+  -- Historizáció implementálása -> backend
+  assign_label_to_task_prc(p_task_id  => v_task_hist_id,
+                           p_label_id => v_label_backend_id);
+
+  -- Alap felhasználók felvétele -> bug
+  assign_label_to_task_prc(p_task_id  => v_task_users_id,
+                           p_label_id => v_label_bug_id);
+
+  --------------------------------------------------------------------
+  -- 4. KOMMENTEK – app_comment (triggerek töltik az extra mezõket)
+  --------------------------------------------------------------------
+  create_comment_prc(p_task_id      => v_task_db_schema_id,
+                     p_user_id      => v_admin_id,
+                     p_comment_body => 'Kérlek nézd át a constraint-eket és a history triggert is.',
+                     p_comment_id   => v_comment1_id);
+
+  create_comment_prc(p_task_id      => v_task_hist_id,
+                     p_user_id      => v_peter_id,
+                     p_comment_body => 'Szerintem a D jelölés DELETE-nél jól mûködik, nézzük meg még egyszer a logot.',
+                     p_comment_id   => v_comment2_id);
+END;
+/
+
+DECLARE
+  v_pma_id       app_project.id%TYPE;
+  v_hist_task_id task.id%TYPE;
+  v_db_task_id   task.id%TYPE;
+  v_peter_id     app_user.id%TYPE;
+
+  v_integration_id integration.id%TYPE;
+  v_pr_id          pr_link.id%TYPE;
+  v_attachment_id  attachment.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- 1. PMA projekt, taskok, user betöltése
+  --------------------------------------------------------------------
+  SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
+
+  SELECT id
+    INTO v_hist_task_id
+    FROM task
+   WHERE title = 'Historizáció implementálása';
+
+  SELECT id
+    INTO v_db_task_id
+    FROM task
+   WHERE title = 'DB séma kialakítása';
+
+  SELECT id
+    INTO v_peter_id
+    FROM app_user
+   WHERE email = 'peter@example.com';
+
+  --------------------------------------------------------------------
+  -- 2. INTEGRÁCIÓ – GITHUB
+  --------------------------------------------------------------------
+  create_integration_prc(p_project_id     => v_pma_id,
+                         p_provider       => 'GITHUB',
+                         p_repo_full_name => 'trunkpeter/pma-demo',
+                         p_access_token   => 'dummy-access-token',
+                         p_webhook_secret => 'dummy-webhook-secret',
+                         p_is_enabled     => 1,
+                         p_integration_id => v_integration_id);
+
+  --------------------------------------------------------------------
+  -- 3. COMMIT LINK
+  --------------------------------------------------------------------
+  create_commit_link_prc(p_task_id        => v_hist_task_id,
+                         p_provider       => 'GITHUB',
+                         p_repo_full_name => 'trunkpeter/pma-demo',
+                         p_commit_sha     => 'abcdef1234567890abcdef1234567890abcdef12',
+                         p_message        => 'Add history triggers and audit columns',
+                         p_author_email   => 'dev@example.com',
+                         p_committed_at   => DATE '2025-01-05');
+
+  --------------------------------------------------------------------
+  -- 4. PR LINK
+  --------------------------------------------------------------------
+  create_pr_link_prc(p_task_id        => v_hist_task_id,
+                     p_provider       => 'GITHUB',
+                     p_repo_full_name => 'trunkpeter/pma-demo',
+                     p_pr_number      => 42,
+                     p_title          => 'Feature: historisation for core tables',
+                     p_state          => 'MERGED',
+                     p_created_at     => DATE '2025-01-06',
+                     p_merged_at      => DATE '2025-01-07',
+                     p_pr_id          => v_pr_id);
+
+  --------------------------------------------------------------------
+  -- 5. ATTACHMENT
+  --------------------------------------------------------------------
+  create_attachment_prc(p_task_id         => v_db_task_id,
+                        p_uploaded_by     => v_peter_id,
+                        p_file_name       => 'db_schema_v1.png',
+                        p_content_type    => 'image/png',
+                        p_size_bytes      => 123456,
+                        p_storage_path    => '/attachments/db_schema_v1.png',
+                        p_attachment_type => 'DESIGN',
+                        p_attachment_id   => v_attachment_id);
+END;
+/
+
 
 -------------------------------------------------------------------------------
 -- APP_ACTIVITY – példa logok
@@ -1681,9 +2198,6 @@ VALUES
   ,'TASK_STATUS_CHANGE'
   ,'Task státusz beállítva: IN_PROGRESS');
 
-
-END;
-/
 
 
 
