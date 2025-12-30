@@ -56,7 +56,7 @@
          AND ROWNUM = 1;  -- csak EGY board/oszloppár
     EXCEPTION
       WHEN NO_DATA_FOUND THEN
-        -- Nincs olyan board/oszlop, amit tölteni kellene → kilépünk
+        -- Nincs olyan board/oszlop, amit tölteni kellene → NEM hiba, simán kilépünk
         g_autofill_running := FALSE;
         RETURN;
     END;
@@ -78,7 +78,7 @@
        WHERE ROWNUM = 1;
     EXCEPTION
       WHEN NO_DATA_FOUND THEN
-        -- Közben esetleg eltűnt a backlog task → kilépünk
+        -- Közben esetleg eltűnt a backlog task → ez sem igazi hiba
         g_autofill_running := FALSE;
         RETURN;
     END;
@@ -97,10 +97,40 @@
     g_autofill_running := FALSE;
 
   EXCEPTION
-    WHEN OTHERS THEN
-      -- Hogy ne ragadjunk be "TRUE" állapotban hiba után
+    WHEN pkg_exceptions.move_task_board_mismatch
+       OR pkg_exceptions.move_task_wip_exceeded
+       OR pkg_exceptions.move_task_not_found
+    THEN
       g_autofill_running := FALSE;
+
+      err_log_pkg.log_error(
+        p_module_name    => 'TASK_AUTOFILL',
+        p_procedure_name => 'fill_todo_from_backlog',
+        p_error_code     => SQLCODE,
+        p_error_msg      => SQLERRM,
+        p_context        => 'task_id='      || NVL(TO_CHAR(l_task_to_move), 'NULL')
+                         || '; todo_col='   || NVL(TO_CHAR(l_todo_column_id), 'NULL')
+                         || '; backlog_col='|| NVL(TO_CHAR(l_backlog_column_id), 'NULL'),
+        p_api            => NULL
+      );
+
+      -- Ugyanazzal a hibakóddal visszadobjuk
       RAISE;
+
+    WHEN OTHERS THEN
+      g_autofill_running := FALSE;
+
+      err_log_pkg.log_error(
+        p_module_name    => 'TASK_AUTOFILL',
+        p_procedure_name => 'fill_todo_from_backlog',
+        p_error_code     => SQLCODE,
+        p_error_msg      => SQLERRM,
+        p_context        => 'task_id='      || NVL(TO_CHAR(l_task_to_move), 'NULL')
+                         || '; todo_col='   || NVL(TO_CHAR(l_todo_column_id), 'NULL')
+                         || '; backlog_col='|| NVL(TO_CHAR(l_backlog_column_id), 'NULL'),
+        p_api            => NULL
+      );
+      RAISE pkg_exceptions.move_task_generic;
   END fill_todo_from_backlog;
 
 END task_autofill_pkg;
