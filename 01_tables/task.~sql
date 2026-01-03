@@ -12,9 +12,6 @@ CREATE TABLE task(
   ,estimated_min  NUMBER
   ,due_date       DATE
   ,position       NUMBER        NOT NULL
-  ,created_by     NUMBER        NOT NULL
-  ,created_at     DATE          DEFAULT SYSDATE NOT NULL
-  ,closed_at      DATE
 )
 TABLESPACE users;
 

@@ -1,0 +1,197 @@
+CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
+
+  FUNCTION get_board_overview_fnc(
+    p_board_id  IN board.id%TYPE,
+    p_sprint_id IN sprint.id%TYPE
+  ) RETURN ty_board_overview IS
+
+    l_board_name   board.board_name%TYPE;
+    l_sprint_name  sprint.sprint_name%TYPE;
+
+    l_columns      ty_column_overview_l := ty_column_overview_l();
+    l_tasks        ty_task_overview_l;
+
+  BEGIN
+    ----------------------------------------------------------------
+    -- 0. Board- és sprint-név beolvasása
+    ----------------------------------------------------------------
+    SELECT board_name
+      INTO l_board_name
+      FROM board
+     WHERE id = p_board_id;
+
+    SELECT sprint_name
+      INTO l_sprint_name
+      FROM sprint
+     WHERE id = p_sprint_id;
+
+    ----------------------------------------------------------------
+    -- 1. Oszlopok bejárása a boardon
+    ----------------------------------------------------------------
+    FOR c_rec IN (
+      SELECT c.id,
+             c.column_name,
+             c.wip_limit,
+             ts.code AS status_code,
+             ts.name AS status_name
+        FROM column_def c
+        JOIN task_status ts
+          ON ts.id = c.status_id
+       WHERE c.board_id = p_board_id
+       ORDER BY c.position
+    ) LOOP
+
+      -- Task lista inicializálása az adott oszlophoz
+      l_tasks := ty_task_overview_l();
+
+      ----------------------------------------------------------------
+      -- 1.1. Taskok beolvasása az adott oszlophoz + sprinthez
+      --      (lezárt taskok kizárva)
+      ----------------------------------------------------------------
+      FOR t_rec IN (
+        SELECT t.id,
+               t.task_key,
+               t.title,
+               t.description,
+               ts2.code              AS status_code,
+               ts2.name              AS status_name,
+               t.position            AS task_position,
+               t.priority,
+               t.created_at,
+               t.due_date,
+               t.closed_at,
+               u.id                  AS created_by_id,
+               u.display_name        AS created_by_name,
+               s.id                  AS sprint_id,
+               s.sprint_name,
+
+               -- ----------------- ASSIGNEES -----------------
+               ( SELECT LISTAGG(u2.display_name, ', ')
+                         WITHIN GROUP (ORDER BY u2.display_name)
+                   FROM task_assignment ta
+                   JOIN app_user u2
+                     ON u2.id = ta.user_id
+                  WHERE ta.task_id = t.id
+               )                      AS assignees_text,
+
+               -- ----------------- ATTACHMENTS ---------------
+               ( SELECT COUNT(*)
+                   FROM attachment a
+                  WHERE a.task_id = t.id
+               )                      AS attachment_count,
+
+               ( SELECT LISTAGG(a.attachment_type, ', ')
+                         WITHIN GROUP (ORDER BY a.attachment_type)
+                   FROM attachment a
+                  WHERE a.task_id = t.id
+               )                      AS attachment_types,
+
+               -- ----------------- LABELS --------------------
+               ( SELECT LISTAGG(l.label_name, ', ')
+                         WITHIN GROUP (ORDER BY l.label_name)
+                   FROM label_task lt
+                   JOIN labels l
+                     ON l.id = lt.label_id
+                  WHERE lt.task_id = t.id
+               )                      AS labels_text,
+
+               -- ----------------- GIT FLAGS -----------------
+               CASE
+                 WHEN EXISTS (
+                        SELECT 1
+                          FROM commit_link cl
+                         WHERE cl.task_id = t.id
+                      )
+                 THEN 'Y'
+                 ELSE 'N'
+               END                    AS has_commit,
+
+               CASE
+                 WHEN EXISTS (
+                        SELECT 1
+                          FROM pr_link pl
+                         WHERE pl.task_id = t.id
+                      )
+                 THEN 'Y'
+                 ELSE 'N'
+               END                    AS has_pr
+
+          FROM task t
+          JOIN task_status ts2
+            ON ts2.id = t.status_id
+          JOIN app_user u
+            ON u.id = t.created_by
+          LEFT JOIN sprint s
+            ON s.id = t.sprint_id
+         WHERE t.board_id  = p_board_id
+           AND t.column_id = c_rec.id
+           AND t.sprint_id = p_sprint_id
+           AND t.closed_at IS NULL
+         ORDER BY t.position
+      ) LOOP
+        l_tasks.EXTEND;
+        l_tasks(l_tasks.LAST) :=
+          ty_task_overview(
+            t_rec.id,
+            t_rec.task_key,
+            t_rec.title,
+            t_rec.description,
+            t_rec.status_code,
+            t_rec.status_name,
+            t_rec.task_position,
+            t_rec.priority,
+            t_rec.created_at,
+            t_rec.due_date,
+            t_rec.closed_at,
+            t_rec.created_by_id,
+            t_rec.created_by_name,
+            t_rec.sprint_id,
+            t_rec.sprint_name,
+            t_rec.assignees_text,
+            t_rec.attachment_count,
+            t_rec.attachment_types,
+            t_rec.labels_text,
+            t_rec.has_commit,
+            t_rec.has_pr
+          );
+      END LOOP;
+
+      ----------------------------------------------------------------
+      -- 1.2. Oszlop-objektum feltöltése + hozzáadása a board listájához
+      ----------------------------------------------------------------
+      l_columns.EXTEND;
+      l_columns(l_columns.LAST) :=
+        ty_column_overview(
+          c_rec.id,
+          c_rec.column_name,
+          c_rec.wip_limit,
+          c_rec.status_code,
+          c_rec.status_name,
+          l_tasks
+        );
+
+    END LOOP;
+
+    ----------------------------------------------------------------
+    -- 2. Board_overview objektum összeállítása és visszaadása
+    ----------------------------------------------------------------
+    RETURN ty_board_overview(
+      p_board_id,
+      l_board_name,
+      p_sprint_id,
+      l_sprint_name,
+      l_columns
+    );
+
+  EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+      -- Ha a board vagy a sprint nem létezik
+      RAISE_APPLICATION_ERROR(
+        -20900,
+        'get_board_overview_fnc: nem található a megadott board vagy sprint. ' ||
+        '(board_id=' || p_board_id || ', sprint_id=' || p_sprint_id || ')'
+      );
+  END get_board_overview_fnc;
+
+END board_overview_pkg;
+/

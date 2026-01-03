@@ -34,6 +34,9 @@ ALTER TABLE task
       CONSTRAINT fk_task_status FOREIGN KEY (status_id) REFERENCES task_status(id),
       CONSTRAINT uq_task_position_per_column UNIQUE (column_id, position)
       );
+      
+ALTER TABLE task
+  ADD created_at DATE DEFAULT SYSDATE NOT NULL;
      
 CREATE SEQUENCE task_seq START WITH 100;
  

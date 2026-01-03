@@ -1,0 +1,12 @@
+CREATE OR REPLACE PACKAGE board_overview_pkg IS
+
+  -- Egy board adott sprintbeli „hierarchikus” nézete
+  --  - csak azokat a taskokat adja vissza, amelyek:
+  --      * board = p_board_id
+  --      * sprint_id = p_sprint_id
+  --      * closed_at IS NULL
+  FUNCTION get_board_overview_fnc(p_board_id  IN board.id%TYPE
+                                 ,p_sprint_id IN sprint.id%TYPE)
+    RETURN ty_board_overview;
+
+END board_overview_pkg;
