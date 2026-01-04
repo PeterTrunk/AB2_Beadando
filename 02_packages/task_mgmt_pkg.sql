@@ -1,8 +1,5 @@
 CREATE OR REPLACE PACKAGE task_mgmt_pkg IS
 
-  --------------------------------------------------------------------
-  -- TASK LÉTREHOZÁS
-  --------------------------------------------------------------------
   PROCEDURE create_task_prc(p_project_id    IN task.project_id%TYPE
                            ,p_board_id      IN task.board_id%TYPE
                            ,p_column_id     IN task.column_id%TYPE
@@ -16,15 +13,8 @@ CREATE OR REPLACE PACKAGE task_mgmt_pkg IS
                            ,p_due_date      IN task.due_date%TYPE DEFAULT NULL
                            ,p_task_id       OUT task.id%TYPE);
 
-  --------------------------------------------------------------------
-  -- TASK–USER HOZZÁRENDELÉS                                        
-  --------------------------------------------------------------------
   PROCEDURE assign_user_to_task_prc(p_task_id IN task_assignment.task_id%TYPE
                                    ,p_user_id IN task_assignment.user_id%TYPE);
-
-  --------------------------------------------------------------------
-  -- TASK MOZGATÁS / SORRENDEZÉS BOARDON BELÜL
-  --------------------------------------------------------------------
 
   -- Task áthelyezése másik oszlopba (ugyanazon a boardon belül),
   -- p_new_position = NULL esetén az új oszlop végére kerül.

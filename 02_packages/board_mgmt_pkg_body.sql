@@ -1,9 +1,5 @@
 CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
 
-  --------------------------------------------------------------------
-  -- BOARD ELJÁRÁSOK
-  --------------------------------------------------------------------
-
   PROCEDURE set_default_board_prc(p_project_id IN board.project_id%TYPE
                                  ,p_board_id   IN board.id%TYPE) IS
     l_cnt NUMBER;

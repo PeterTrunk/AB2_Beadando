@@ -3,16 +3,16 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
   --------------------------------------------------------------------
   -- CREATE_COLUMN
   --------------------------------------------------------------------
-  
+
   create_column_status_not_found EXCEPTION;
   PRAGMA EXCEPTION_INIT(create_column_status_not_found, -20080);
-  
+
   create_column_dup EXCEPTION;
   PRAGMA EXCEPTION_INIT(create_column_dup, -20081);
-  
+
   create_column_generic EXCEPTION;
   PRAGMA EXCEPTION_INIT(create_column_generic, -20082);
-  
+
   --------------------------------------------------------------------
   -- CREATE_TASK
   --------------------------------------------------------------------
@@ -25,7 +25,7 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
   assign_user_already_assigned EXCEPTION;
   PRAGMA EXCEPTION_INIT(assign_user_already_assigned, -20110);
 
-  assign_user_generic  EXCEPTION;
+  assign_user_generic EXCEPTION;
   PRAGMA EXCEPTION_INIT(assign_user_generic, -20111);
 
   --------------------------------------------------------------------
@@ -114,7 +114,7 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
   --------------------------------------------------------------------
   task_status_column_not_found EXCEPTION;
   PRAGMA EXCEPTION_INIT(task_status_column_not_found, -20300);
-  
+
   --------------------------------------------------------------------
   -- BOARD OVERVIEW PKG
   --------------------------------------------------------------------
@@ -126,8 +126,116 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
 
   board_overview_generic EXCEPTION;
   PRAGMA EXCEPTION_INIT(board_overview_generic, -20312);
-  
-  
+
+  --------------------------------------------------------------------
+  -- GIT INTEGRATION
+  --------------------------------------------------------------------
+  git_integration_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(git_integration_not_found, -20320);
+
+  git_message_no_task_key EXCEPTION;
+  PRAGMA EXCEPTION_INIT(git_message_no_task_key, -20321);
+
+  git_invalid_event_type EXCEPTION;
+  PRAGMA EXCEPTION_INIT(git_invalid_event_type, -20322);
+
+  git_integration_generic EXCEPTION;
+  PRAGMA EXCEPTION_INIT(git_integration_generic, -20323);
+
+  ------------------------------------------------------------------
+  -- AUTH / ROLE / USER
+  ------------------------------------------------------------------
+  role_name_duplicate EXCEPTION;
+  PRAGMA EXCEPTION_INIT(role_name_duplicate, -20330);
+
+  role_generic_error EXCEPTION;
+  PRAGMA EXCEPTION_INIT(role_generic_error, -20331);
+
+  user_email_duplicate EXCEPTION;
+  PRAGMA EXCEPTION_INIT(user_email_duplicate, -20332);
+
+  user_generic_error EXCEPTION;
+  PRAGMA EXCEPTION_INIT(user_generic_error, -20333);
+
+  user_role_duplicate EXCEPTION;
+  PRAGMA EXCEPTION_INIT(user_role_duplicate, -20334);
+
+  user_role_generic EXCEPTION;
+  PRAGMA EXCEPTION_INIT(user_role_generic, -20335);
+
+  ------------------------------------------------------------------
+  -- PROJECT / PROJECT_MEMBER
+  ------------------------------------------------------------------
+  project_owner_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(project_owner_not_found, -20340);
+
+  project_key_duplicate EXCEPTION;
+  PRAGMA EXCEPTION_INIT(project_key_duplicate, -20341);
+
+  project_create_generic EXCEPTION;
+  PRAGMA EXCEPTION_INIT(project_create_generic, -20342);
+
+  project_member_duplicate EXCEPTION;
+  PRAGMA EXCEPTION_INIT(project_member_duplicate, -20343);
+
+  project_member_generic EXCEPTION;
+  PRAGMA EXCEPTION_INIT(project_member_generic, -20344);
+  ------------------------------------------------------------------
+  -- SPRINT (20360–20369)
+  ------------------------------------------------------------------
+  sprint_project_mismatch EXCEPTION;
+  PRAGMA EXCEPTION_INIT(sprint_project_mismatch, -20360);
+
+  sprint_date_invalid EXCEPTION;
+  PRAGMA EXCEPTION_INIT(sprint_date_invalid, -20361);
+
+  sprint_create_generic EXCEPTION;
+  PRAGMA EXCEPTION_INIT(sprint_create_generic, -20362);
+
+  ------------------------------------------------------------------
+  -- LABEL (20370–20379)
+  ------------------------------------------------------------------
+  label_name_duplicate EXCEPTION;
+  PRAGMA EXCEPTION_INIT(label_name_duplicate, -20370);
+
+  label_project_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(label_project_not_found, -20371);
+
+  label_generic_error EXCEPTION;
+  PRAGMA EXCEPTION_INIT(label_generic_error, -20372);
+
+  label_task_duplicate EXCEPTION;
+  PRAGMA EXCEPTION_INIT(label_task_duplicate, -20373);
+
+  label_task_generic EXCEPTION;
+  PRAGMA EXCEPTION_INIT(label_task_generic, -20374);
+
+  ------------------------------------------------------------------
+  -- COMMENT
+  ------------------------------------------------------------------
+  comment_task_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(comment_task_not_found, -20380);
+
+  comment_user_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(comment_user_not_found, -20381);
+
+  comment_create_generic EXCEPTION;
+  PRAGMA EXCEPTION_INIT(comment_create_generic, -20382);
+
+  ------------------------------------------------------------------
+  -- ATTACHMENT
+  ------------------------------------------------------------------
+  attachment_task_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(attachment_task_not_found, -20390);
+
+  attachment_user_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(attachment_user_not_found, -20391);
+
+  attachment_generic_error EXCEPTION;
+  PRAGMA EXCEPTION_INIT(attachment_generic_error, -20392);
+
+  attachment_constraint_violation EXCEPTION;
+  PRAGMA EXCEPTION_INIT(attachment_constraint_violation, -20393);
 
 END pkg_exceptions;
 /

@@ -1,0 +1,17 @@
+CREATE OR REPLACE PACKAGE auth_mgmt_pkg IS
+
+  PROCEDURE create_role_prc(p_role_name   IN app_role.role_name%TYPE
+                           ,p_description IN app_role.description%TYPE
+                           ,p_role_id     OUT app_role.id%TYPE);
+
+  PROCEDURE create_user_prc(p_email         IN app_user.email%TYPE
+                           ,p_display_name  IN app_user.display_name%TYPE
+                           ,p_password_hash IN app_user.password_hash%TYPE
+                           ,p_is_active     IN app_user.is_active%TYPE
+                           ,p_user_id       OUT app_user.id%TYPE);
+
+  PROCEDURE assign_role_to_user_prc(p_user_id IN app_user_role.user_id%TYPE
+                                   ,p_role_id IN app_user_role.role_id%TYPE);
+
+END auth_mgmt_pkg;
+/
