@@ -1,0 +1,305 @@
+CREATE OR REPLACE PACKAGE BODY git_integration_pkg IS
+
+  PROCEDURE create_integration_prc(p_project_id     IN integration.project_id%TYPE
+                                  ,p_provider       IN integration.provider%TYPE
+                                  ,p_repo_full_name IN integration.repo_full_name%TYPE
+                                  ,p_access_token   IN integration.access_token%TYPE
+                                  ,p_webhook_secret IN integration.webhook_secret%TYPE
+                                  ,p_is_enabled     IN integration.is_enabled%TYPE
+                                  ,p_integration_id OUT integration.id%TYPE) IS
+  BEGIN
+    INSERT INTO integration
+      (project_id
+      ,provider
+      ,repo_full_name
+      ,access_token
+      ,webhook_secret
+      ,is_enabled)
+    VALUES
+      (p_project_id
+      ,p_provider
+      ,p_repo_full_name
+      ,p_access_token
+      ,p_webhook_secret
+      ,p_is_enabled)
+    RETURNING id INTO p_integration_id;
+  
+  EXCEPTION
+    WHEN dup_val_on_index THEN
+      err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                            p_procedure_name => 'create_integration_prc',
+                            p_error_code     => SQLCODE,
+                            p_error_msg      => 'Duplicate integration for same project/provider/repo.',
+                            p_context        => 'project_id=' ||
+                                                p_project_id ||
+                                                '; provider=' || p_provider ||
+                                                '; repo=' ||
+                                                p_repo_full_name,
+                            p_api            => NULL);
+      RAISE pkg_exceptions.git_integration_generic;
+    
+    WHEN OTHERS THEN
+      err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                            p_procedure_name => 'create_integration_prc',
+                            p_error_code     => SQLCODE,
+                            p_error_msg      => SQLERRM,
+                            p_context        => 'project_id=' ||
+                                                p_project_id ||
+                                                '; provider=' || p_provider ||
+                                                '; repo=' ||
+                                                p_repo_full_name,
+                            p_api            => NULL);
+      RAISE pkg_exceptions.git_integration_generic;
+  END create_integration_prc;
+
+  PROCEDURE add_commit_link_prc(p_task_id        IN commit_link.task_id%TYPE
+                               ,p_provider       IN commit_link.provider%TYPE
+                               ,p_repo_full_name IN commit_link.repo_full_name%TYPE
+                               ,p_commit_sha     IN commit_link.commit_sha%TYPE
+                               ,p_message        IN commit_link.message%TYPE
+                               ,p_author_email   IN commit_link.author_email%TYPE
+                               ,p_committed_at   IN commit_link.committed_at%TYPE) IS
+  BEGIN
+    INSERT INTO commit_link
+      (task_id
+      ,provider
+      ,repo_full_name
+      ,commit_sha
+      ,message
+      ,author_email
+      ,committed_at)
+    VALUES
+      (p_task_id
+      ,p_provider
+      ,p_repo_full_name
+      ,p_commit_sha
+      ,p_message
+      ,p_author_email
+      ,p_committed_at);
+  
+  EXCEPTION
+    WHEN dup_val_on_index THEN
+      err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                            p_procedure_name => 'add_commit_link_prc',
+                            p_error_code     => SQLCODE,
+                            p_error_msg      => 'Duplicate commit_link for same task/sha.',
+                            p_context        => 'task_id=' || p_task_id ||
+                                                '; sha=' || p_commit_sha,
+                            p_api            => NULL);
+      RAISE pkg_exceptions.git_integration_generic;
+    
+    WHEN OTHERS THEN
+      err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                            p_procedure_name => 'add_commit_link_prc',
+                            p_error_code     => SQLCODE,
+                            p_error_msg      => SQLERRM,
+                            p_context        => 'task_id=' || p_task_id ||
+                                                '; sha=' || p_commit_sha,
+                            p_api            => NULL);
+      RAISE pkg_exceptions.git_integration_generic;
+  END add_commit_link_prc;
+
+  PROCEDURE add_pr_link_prc(p_task_id        IN pr_link.task_id%TYPE
+                           ,p_provider       IN pr_link.provider%TYPE
+                           ,p_repo_full_name IN pr_link.repo_full_name%TYPE
+                           ,p_pr_number      IN pr_link.pr_number%TYPE
+                           ,p_title          IN pr_link.title%TYPE
+                           ,p_state          IN pr_link.state%TYPE
+                           ,p_created_at     IN pr_link.created_at%TYPE
+                           ,p_merged_at      IN pr_link.merged_at%TYPE) IS
+  BEGIN
+    INSERT INTO pr_link
+      (task_id
+      ,provider
+      ,repo_full_name
+      ,pr_number
+      ,title
+      ,state
+      ,created_at
+      ,merged_at)
+    VALUES
+      (p_task_id
+      ,p_provider
+      ,p_repo_full_name
+      ,p_pr_number
+      ,p_title
+      ,p_state
+      ,p_created_at
+      ,p_merged_at);
+  
+  EXCEPTION
+    WHEN dup_val_on_index THEN
+      err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                            p_procedure_name => 'add_pr_link_prc',
+                            p_error_code     => SQLCODE,
+                            p_error_msg      => 'Duplicate pr_link for same task/pr_number.',
+                            p_context        => 'task_id=' || p_task_id ||
+                                                '; pr_number=' ||
+                                                p_pr_number,
+                            p_api            => NULL);
+      RAISE pkg_exceptions.git_integration_generic;
+    
+    WHEN OTHERS THEN
+      err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                            p_procedure_name => 'add_pr_link_prc',
+                            p_error_code     => SQLCODE,
+                            p_error_msg      => SQLERRM,
+                            p_context        => 'task_id=' || p_task_id ||
+                                                '; pr_number=' ||
+                                                p_pr_number,
+                            p_api            => NULL);
+      RAISE pkg_exceptions.git_integration_generic;
+  END add_pr_link_prc;
+
+  ------------------------------------------------------------------
+  -- Általános függvény commit/PR webhook eseményre
+  ------------------------------------------------------------------
+
+  FUNCTION process_git_message_fnc(p_proj_key       IN app_project.proj_key%TYPE
+                                  ,p_event_type     IN VARCHAR2
+                                  ,p_message        IN VARCHAR2
+                                  ,p_provider       IN VARCHAR2
+                                  ,p_repo_full_name IN VARCHAR2
+                                  ,p_commit_sha     IN VARCHAR2
+                                  ,p_author_email   IN VARCHAR2
+                                  ,p_committed_at   IN DATE
+                                  ,p_pr_number      IN NUMBER
+                                  ,p_state          IN VARCHAR2
+                                  ,p_created_at     IN DATE
+                                  ,p_merged_at      IN DATE)
+    RETURN PLS_INTEGER IS
+  
+    l_event_type VARCHAR2(10) := upper(TRIM(p_event_type));
+    l_project_id app_project.id%TYPE;
+    l_task_key   VARCHAR2(64);
+    l_task_id    task.id%TYPE;
+    l_occurrence PLS_INTEGER := 1;
+    l_link_count PLS_INTEGER := 0;
+  
+  BEGIN
+    -- Event típus validálás
+    IF l_event_type NOT IN ('COMMIT', 'PR')
+    THEN
+      err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                            p_procedure_name => 'process_git_message_fnc',
+                            p_error_code     => -20322,
+                            p_error_msg      => 'Invalid event type (expected COMMIT or PR).',
+                            p_context        => 'event_type=' ||
+                                                p_event_type,
+                            p_api            => NULL);
+      RAISE pkg_exceptions.git_invalid_event_type;
+    END IF;
+  
+    -- Projekt ID kikeresése proj_key alapján
+    BEGIN
+      SELECT id
+        INTO l_project_id
+        FROM app_project
+       WHERE proj_key = p_proj_key;
+    EXCEPTION
+      WHEN no_data_found THEN
+        err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                              p_procedure_name => 'process_git_message_fnc',
+                              p_error_code     => -20320,
+                              p_error_msg      => 'Project not found for proj_key',
+                              p_context        => 'proj_key=' || p_proj_key,
+                              p_api            => NULL);
+        RAISE pkg_exceptions.git_integration_not_found;
+    END;
+  
+    -- Task kulcsok kikeresése az üzenetbõl: pl. "PMA-123"
+    LOOP
+      l_task_key := regexp_substr(p_message,
+                                  p_proj_key || '-[0-9]+',
+                                  1,
+                                  l_occurrence);
+    
+      EXIT WHEN l_task_key IS NULL;
+      l_occurrence := l_occurrence + 1;
+    
+      -- Task ID kikeresése a kulcs alapján
+      BEGIN
+        SELECT id
+          INTO l_task_id
+          FROM task
+         WHERE project_id = l_project_id
+           AND task_key = l_task_key;
+      
+      EXCEPTION
+        WHEN no_data_found THEN
+          -- Nem állunk le, csak logoljuk, hogy ismeretlen task key
+          err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                                p_procedure_name => 'process_git_message_fnc',
+                                p_error_code     => -20321,
+                                p_error_msg      => 'Task not found for key in git message.',
+                                p_context        => 'proj_key=' ||
+                                                    p_proj_key ||
+                                                    '; task_key=' ||
+                                                    l_task_key ||
+                                                    '; event_type=' ||
+                                                    l_event_type,
+                                p_api            => NULL);
+          CONTINUE;
+      END;
+    
+      -- Link beszúrása az esemény típusától függõen
+      IF l_event_type = 'COMMIT'
+      THEN
+        add_commit_link_prc(p_task_id        => l_task_id,
+                            p_provider       => p_provider,
+                            p_repo_full_name => p_repo_full_name,
+                            p_commit_sha     => p_commit_sha,
+                            p_message        => p_message,
+                            p_author_email   => p_author_email,
+                            p_committed_at   => nvl(p_committed_at, SYSDATE));
+      ELSE
+        add_pr_link_prc(p_task_id        => l_task_id,
+                        p_provider       => p_provider,
+                        p_repo_full_name => p_repo_full_name,
+                        p_pr_number      => p_pr_number,
+                        p_title          => p_message, -- általában title+body
+                        p_state          => p_state,
+                        p_created_at     => nvl(p_created_at, SYSDATE),
+                        p_merged_at      => p_merged_at);
+      END IF;
+    
+      l_link_count := l_link_count + 1;
+    END LOOP;
+  
+    -- Ha végül egyetlen task key sem volt, dobjunk speciális hibát
+    IF l_link_count = 0
+    THEN
+      err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                            p_procedure_name => 'process_git_message_fnc',
+                            p_error_code     => -20321,
+                            p_error_msg      => 'No task key found in git message.',
+                            p_context        => 'proj_key=' || p_proj_key ||
+                                                '; event_type=' ||
+                                                l_event_type || '; message=' ||
+                                                substr(p_message, 1, 2000),
+                            p_api            => NULL);
+      RAISE pkg_exceptions.git_message_no_task_key;
+    END IF;
+  
+    RETURN l_link_count;
+  
+  EXCEPTION
+    WHEN pkg_exceptions.git_invalid_event_type
+         OR pkg_exceptions.git_integration_not_found
+         OR pkg_exceptions.git_message_no_task_key THEN
+      RAISE;
+    
+    WHEN OTHERS THEN
+      err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
+                            p_procedure_name => 'process_git_message_fnc',
+                            p_error_code     => SQLCODE,
+                            p_error_msg      => SQLERRM,
+                            p_context        => 'proj_key=' || p_proj_key ||
+                                                '; event_type=' ||
+                                                p_event_type,
+                            p_api            => NULL);
+      RAISE pkg_exceptions.git_integration_generic;
+  END process_git_message_fnc;
+
+END git_integration_pkg;
+/

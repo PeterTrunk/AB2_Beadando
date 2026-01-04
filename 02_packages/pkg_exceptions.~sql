@@ -4,13 +4,13 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
   -- CREATE_COLUMN
   --------------------------------------------------------------------
   
-  create_column_status_not_found EXCEPTION
+  create_column_status_not_found EXCEPTION;
   PRAGMA EXCEPTION_INIT(create_column_status_not_found, -20080);
   
-  create_column_dup EXCEPTION
+  create_column_dup EXCEPTION;
   PRAGMA EXCEPTION_INIT(create_column_dup, -20081);
   
-  create_column_generic EXCEPTION
+  create_column_generic EXCEPTION;
   PRAGMA EXCEPTION_INIT(create_column_generic, -20082);
   
   --------------------------------------------------------------------
@@ -114,6 +114,20 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
   --------------------------------------------------------------------
   task_status_column_not_found EXCEPTION;
   PRAGMA EXCEPTION_INIT(task_status_column_not_found, -20300);
+  
+  --------------------------------------------------------------------
+  -- BOARD OVERVIEW PKG
+  --------------------------------------------------------------------
+  board_overview_board_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(board_overview_board_not_found, -20310);
+
+  board_overview_sprint_mismatch EXCEPTION;
+  PRAGMA EXCEPTION_INIT(board_overview_sprint_mismatch, -20311);
+
+  board_overview_generic EXCEPTION;
+  PRAGMA EXCEPTION_INIT(board_overview_generic, -20312);
+  
+  
 
 END pkg_exceptions;
 /

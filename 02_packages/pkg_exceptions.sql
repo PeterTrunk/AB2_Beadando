@@ -127,7 +127,21 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
   board_overview_generic EXCEPTION;
   PRAGMA EXCEPTION_INIT(board_overview_generic, -20312);
   
-  
+  --------------------------------------------------------------------
+  -- GIT INTEGRATION
+  --------------------------------------------------------------------
+  git_integration_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(git_integration_not_found, -20320);
+
+  git_message_no_task_key EXCEPTION;
+  PRAGMA EXCEPTION_INIT(git_message_no_task_key, -20321);
+
+  git_invalid_event_type EXCEPTION;
+  PRAGMA EXCEPTION_INIT(git_invalid_event_type, -20322);
+
+  git_integration_generic EXCEPTION;
+  PRAGMA EXCEPTION_INIT(git_integration_generic, -20323);
+
 
 END pkg_exceptions;
 /
