@@ -1351,6 +1351,7 @@ CREATE OR REPLACE PACKAGE BODY err_log_pkg IS
                      ,p_error_msg      IN app_error_log.error_msg%TYPE
                      ,p_context        IN app_error_log.context%TYPE
                      ,p_api            IN app_error_log.api%TYPE) IS
+    PRAGMA AUTONOMOUS_TRANSACTION;
     l_id app_error_log.id%TYPE;
   BEGIN
     l_id := app_error_log_seq.nextval;
