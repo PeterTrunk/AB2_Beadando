@@ -44,24 +44,6 @@ CREATE OR REPLACE PACKAGE BODY comment_mgmt_pkg IS
       ,p_user_id
       ,p_comment_body)
     RETURNING id INTO p_comment_id;
-    
-    -- Activity log
-    DECLARE
-      l_activity_id app_activity.id%TYPE;
-      l_project_id  task.project_id%TYPE;
-    BEGIN
-      SELECT project_id INTO l_project_id FROM task WHERE id = p_task_id;
-    
-      activity_log_pkg.log_activity_prc(p_project_id  => l_project_id,
-                                        p_actor_id    => p_user_id,
-                                        p_entity_type => 'COMMENT',
-                                        p_entity_id   => p_comment_id,
-                                        p_action      => 'COMMENT_CREATE',
-                                        p_payload     => substr(p_comment_body,
-                                                                1,
-                                                                200),
-                                        p_activity_id => l_activity_id);
-    END;
   
   EXCEPTION
     WHEN OTHERS THEN

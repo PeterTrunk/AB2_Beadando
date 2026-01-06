@@ -6,7 +6,12 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
                               ,p_owner_id     IN app_project.owner_id%TYPE
                               ,p_project_id   OUT app_project.id%TYPE) IS
     l_owner_exists NUMBER;
+    l_seq_name     app_project.task_seq_name%TYPE;
+    l_activity_id  app_activity.id%TYPE;
   BEGIN
+    ----------------------------------------------------------------
+    -- Owner user létezésének ellenõrzése
+    ----------------------------------------------------------------
     SELECT COUNT(*)
       INTO l_owner_exists
       FROM app_user
@@ -25,17 +30,47 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
       RAISE pkg_exceptions.project_owner_not_found;
     END IF;
   
+    ----------------------------------------------------------------
+    -- Sequence név generálása a PROJ_KEY alapján
+    ----------------------------------------------------------------
+    l_seq_name := build_task_seq_name_fnc(p_proj_key);
+  
+    ----------------------------------------------------------------
+    -- Projekt beszúrása, task_seq_name eltárolása
+    ----------------------------------------------------------------
     INSERT INTO app_project
       (project_name
       ,proj_key
       ,description
-      ,owner_id)
+      ,owner_id
+      ,task_seq_name)
     VALUES
       (p_project_name
       ,p_proj_key
       ,p_description
-      ,p_owner_id)
+      ,p_owner_id
+      ,l_seq_name)
     RETURNING id INTO p_project_id;
+  
+    ----------------------------------------------------------------
+    -- A projekt saját task sequence-ének létrehozása
+    ----------------------------------------------------------------
+    BEGIN
+      EXECUTE IMMEDIATE 'CREATE SEQUENCE ' || l_seq_name ||
+                        ' START WITH 1 INCREMENT BY 1';  
+    END;
+  
+    ----------------------------------------------------------------
+    -- Activity log
+    ----------------------------------------------------------------
+    BEGIN
+      activity_log_pkg.log_project_created_prc(p_project_id  => p_project_id,
+                                               p_actor_id    => p_owner_id,
+                                               p_activity_id => l_activity_id);
+    EXCEPTION
+      WHEN OTHERS THEN
+        NULL;
+    END;
   
   EXCEPTION
     WHEN dup_val_on_index THEN

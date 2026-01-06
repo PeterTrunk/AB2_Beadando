@@ -6,7 +6,12 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
                               ,p_owner_id     IN app_project.owner_id%TYPE
                               ,p_project_id   OUT app_project.id%TYPE) IS
     l_owner_exists NUMBER;
+    l_seq_name     app_project.task_seq_name%TYPE;
+    l_activity_id  app_activity.id%TYPE;
   BEGIN
+    ----------------------------------------------------------------
+    -- Owner user létezésének ellenõrzése
+    ----------------------------------------------------------------
     SELECT COUNT(*)
       INTO l_owner_exists
       FROM app_user
@@ -16,39 +21,66 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
     THEN
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
                             p_procedure_name => 'create_project_prc',
-                            p_error_code     => -20330,
+                            p_error_code     => -20340,
                             p_error_msg      => 'Owner user nem létezik.',
                             p_context        => 'owner_id=' || p_owner_id ||
                                                 '; project_name=' ||
                                                 p_project_name,
                             p_api            => NULL);
-      raise_application_error(-20330,
-                              'create_project_prc: a megadott owner user nem létezik (id=' ||
-                              p_owner_id || ').');
+      RAISE pkg_exceptions.project_owner_not_found;
     END IF;
+  
+    ----------------------------------------------------------------
+    -- Sequence név generálása a PROJ_KEY alapján
+    ----------------------------------------------------------------
+    l_seq_name := build_task_seq_name_fnc(p_proj_key);
+  
+    ----------------------------------------------------------------
+    -- Projekt beszúrása, task_seq_name eltárolása
+    ----------------------------------------------------------------
     INSERT INTO app_project
       (project_name
       ,proj_key
       ,description
-      ,owner_id)
+      ,owner_id
+      ,task_seq_name)
     VALUES
       (p_project_name
       ,p_proj_key
       ,p_description
-      ,p_owner_id)
+      ,p_owner_id
+      ,l_seq_name)
     RETURNING id INTO p_project_id;
+  
+    ----------------------------------------------------------------
+    -- A projekt saját task sequence-ének létrehozása
+    ----------------------------------------------------------------
+    BEGIN
+      EXECUTE IMMEDIATE 'CREATE SEQUENCE ' || l_seq_name ||
+                        ' START WITH 1 INCREMENT BY 1';  
+    END;
+  
+    ----------------------------------------------------------------
+    -- Activity log
+    ----------------------------------------------------------------
+    BEGIN
+      activity_log_pkg.log_project_created_prc(p_project_id  => p_project_id,
+                                               p_actor_id    => p_owner_id,
+                                               p_activity_id => l_activity_id);
+    EXCEPTION
+      WHEN OTHERS THEN
+        NULL;
+    END;
   
   EXCEPTION
     WHEN dup_val_on_index THEN
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
                             p_procedure_name => 'create_project_prc',
-                            p_error_code     => -20331,
+                            p_error_code     => -20341,
                             p_error_msg      => 'Projekt kulcs ütközik (PROJ_KEY).',
                             p_context        => 'proj_key=' || p_proj_key,
                             p_api            => NULL);
-      raise_application_error(-20331,
-                              'create_project_prc: már létezik ilyen projekt kulcs: "' ||
-                              p_proj_key || '".');
+      RAISE pkg_exceptions.project_key_duplicate;
     
     WHEN OTHERS THEN
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
@@ -59,9 +91,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
                                                 p_project_name ||
                                                 '; proj_key=' || p_proj_key,
                             p_api            => NULL);
-      raise_application_error(-20332,
-                              'create_project_prc hiba (proj_key="' ||
-                              p_proj_key || '"): ' || SQLERRM);
+      RAISE pkg_exceptions.project_create_generic;
   END create_project_prc;
 
   PROCEDURE assign_user_to_project_prc(p_project_id   IN project_member.project_id%TYPE
@@ -81,14 +111,13 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
     WHEN dup_val_on_index THEN
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
                             p_procedure_name => 'assign_user_to_project_prc',
-                            p_error_code     => -20340,
+                            p_error_code     => -20343,
                             p_error_msg      => 'User már tagja ennek a projektnek.',
                             p_context        => 'project_id=' ||
                                                 p_project_id || '; user_id=' ||
                                                 p_user_id,
                             p_api            => NULL);
-      raise_application_error(-20340,
-                              'assign_user_to_project_prc: a user már tagja ennek a projektnek.');
+      RAISE pkg_exceptions.project_member_duplicate;
     
     WHEN OTHERS THEN
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
@@ -99,10 +128,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
                                                 p_project_id || '; user_id=' ||
                                                 p_user_id,
                             p_api            => NULL);
-      raise_application_error(-20341,
-                              'assign_user_to_project_prc hiba (project_id=' ||
-                              p_project_id || ', user_id=' || p_user_id ||
-                              '): ' || SQLERRM);
+      RAISE pkg_exceptions.project_member_generic;
   END assign_user_to_project_prc;
 
 END project_mgmt_pkg;

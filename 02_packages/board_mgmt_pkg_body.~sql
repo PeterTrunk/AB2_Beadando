@@ -1,15 +1,99 @@
-CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
+ÔªøCREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
+  PROCEDURE create_board_prc(
+    p_project_id IN board.project_id%TYPE,
+    p_board_name IN board.board_name%TYPE,
+    p_is_default IN board.is_default%TYPE DEFAULT 0,
+    p_position   IN board.position%TYPE,
+    p_board_id   OUT board.id%TYPE
+  ) IS
+    l_project_cnt NUMBER;
+    l_position    board.position%TYPE;
+  BEGIN
+    ------------------------------------------------------------------
+    -- Projekt l√©tez√©s√©nek ellen≈ërz√©se
+    ------------------------------------------------------------------
+    SELECT COUNT(*)
+      INTO l_project_cnt
+      FROM app_project
+     WHERE id = p_project_id;
 
-  --------------------------------------------------------------------
-  -- BOARD ELJ¡R¡SOK
-  --------------------------------------------------------------------
+    IF l_project_cnt = 0 THEN
+      RAISE_APPLICATION_ERROR(
+        -20110,
+        'create_board_prc: a megadott projekt nem l√©tezik (project_id='
+        || p_project_id || ').'
+      );
+    END IF;
+
+    ------------------------------------------------------------------
+    -- Poz√≠ci√≥ meghat√°roz√°sa
+    -- Ha p_position NULL vagy < 1 ‚Üí a projekt board-list√°j√°nak v√©g√©re rakjuk
+    ------------------------------------------------------------------
+    IF p_position IS NULL OR p_position < 1 THEN
+      SELECT NVL(MAX(position), 0) + 1
+        INTO l_position
+        FROM board
+       WHERE project_id = p_project_id;
+    ELSE
+      l_position := p_position;
+    END IF;
+
+    ------------------------------------------------------------------
+    -- Board besz√∫r√°sa
+    ------------------------------------------------------------------
+    INSERT INTO board (
+      project_id,
+      board_name,
+      is_default,
+      position,
+      created_at
+    ) VALUES (
+      p_project_id,
+      p_board_name,
+      NVL(p_is_default, 0),
+      l_position,
+      SYSDATE
+    )
+    RETURNING id INTO p_board_id;
+
+    ------------------------------------------------------------------
+    -- Ha default board, akkor a t√∂bbi default flag-et levessz√ºk
+    ------------------------------------------------------------------
+    IF NVL(p_is_default, 0) = 1 THEN
+      -- minden m√°s boardr√≥l levessz√ºk az is_default-ot
+      UPDATE board
+         SET is_default = 0
+       WHERE project_id = p_project_id
+         AND id <> p_board_id;
+
+      -- biztos ami biztos, ezt az egyet 1-re tessz√ºk
+      UPDATE board
+         SET is_default = 1
+       WHERE id = p_board_id;
+    END IF;
+
+  EXCEPTION
+    WHEN dup_val_on_index THEN
+      RAISE_APPLICATION_ERROR(
+        -20111,
+        'create_board_prc: √ºtk√∂z√©s az egyedi constrainten (val√≥sz√≠n≈±leg (project_id, board_name) vagy (project_id, position)). ' ||
+        '(project_id=' || p_project_id || ', board_name="' || p_board_name || '")'
+      );
+    WHEN OTHERS THEN
+      RAISE_APPLICATION_ERROR(
+        -20112,
+        'create_board_prc hiba (project_id=' || p_project_id ||
+        ', board_name="' || p_board_name || '"): ' || SQLERRM
+      );
+  END create_board_prc;
+
 
   PROCEDURE set_default_board_prc(p_project_id IN board.project_id%TYPE
                                  ,p_board_id   IN board.id%TYPE) IS
     l_cnt NUMBER;
   BEGIN
     ------------------------------------------------------------------
-    -- 1. EllenırzÈs: a board tÈnyleg ehhez a projekthez tartozik?
+    -- Ellen≈ërz√©s: a board t√©nyleg ehhez a projekthez tartozik?
     ------------------------------------------------------------------
     SELECT COUNT(*)
       INTO l_cnt
@@ -27,11 +111,11 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
                                                 p_project_id ||
                                                 '; board_id=' || p_board_id,
                             p_api            => NULL);
-      RAISE pkg_exceptions.set_default_board_not_in_project;
+      RAISE pkg_exceptions.set_default_board_not_in_proj;
     END IF;
   
     ------------------------------------------------------------------
-    -- 2. Minden boardot levessz¸k default-rÛl
+    -- Minden boardot levessz√ºk default-r√≥l
     ------------------------------------------------------------------
     UPDATE board
        SET is_default = 0
@@ -39,7 +123,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
        AND is_default = 1;
   
     ------------------------------------------------------------------
-    -- 3. A megadott board lesz az alapÈrtelmezett
+    -- A megadott board lesz az alap√©rtelmezett
     ------------------------------------------------------------------
     UPDATE board SET is_default = 1 WHERE id = p_board_id;
   
@@ -68,7 +152,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'BOARD',
                             p_procedure_name => 'rename_board_prc',
                             p_error_code     => -20130,
-                            p_error_msg      => 'Nem tal·lhatÛ a megadott board.',
+                            p_error_msg      => 'Nem tal√°lhat√≥ a megadott board.',
                             p_context        => 'board_id=' || p_board_id ||
                                                 '; new_name="' || p_new_name || '"',
                             p_api            => NULL);
@@ -77,11 +161,10 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
   
   EXCEPTION
     WHEN dup_val_on_index THEN
-      -- valÛszÌn˚leg (project_id, board_name) unique constraint sÈr¸l
       err_log_pkg.log_error(p_module_name    => 'BOARD',
                             p_procedure_name => 'rename_board_prc',
                             p_error_code     => -20131,
-                            p_error_msg      => 'M·r lÈtezik ilyen nev˚ board ugyanabban a projektben.',
+                            p_error_msg      => 'M√°r l√©tezik ilyen nev≈± board ugyanabban a projektben.',
                             p_context        => 'board_id=' || p_board_id ||
                                                 '; new_name="' || p_new_name || '"',
                             p_api            => NULL);
@@ -110,7 +193,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'BOARD',
                             p_procedure_name => 'reorder_board_prc',
                             p_error_code     => -20140,
-                            p_error_msg      => 'A pozÌciÛ nem lehet 1-nÈl kisebb.',
+                            p_error_msg      => 'A poz√≠ci√≥ nem lehet 1-n√©l kisebb.',
                             p_context        => 'board_id=' || p_board_id ||
                                                 '; new_position=' ||
                                                 p_new_position,
@@ -134,18 +217,18 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- Az azonos projekthez tartozÛ boardok pozÌciÛinak eltol·sa
+    -- Az azonos projekthez tartoz√≥ boardok poz√≠ci√≥inak eltol√°sa
     ------------------------------------------------------------------
     IF p_new_position < l_old_pos
     THEN
-      -- FelfelÈ mozgatjuk: a kˆztes boardok lejjebb cs˙sznak
+      -- Felfel√© mozgatjuk: a k√∂ztes boardok lejjebb cs√∫sznak
       UPDATE board
          SET position = position + 1
        WHERE project_id = l_project_id
          AND position >= p_new_position
          AND position < l_old_pos;
     ELSE
-      -- LefelÈ mozgatjuk: a kˆztes boardok feljebb cs˙sznak
+      -- Lefel√© mozgatjuk: a k√∂ztes boardok feljebb cs√∫sznak
       UPDATE board
          SET position = position - 1
        WHERE project_id = l_project_id
@@ -154,7 +237,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- A kiv·lasztott board ˙j pozÌciÛja
+    -- A kiv√°lasztott board √∫j poz√≠ci√≥ja
     ------------------------------------------------------------------
     UPDATE board SET position = p_new_position WHERE id = p_board_id;
   

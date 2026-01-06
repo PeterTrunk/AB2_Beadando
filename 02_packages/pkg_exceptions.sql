@@ -234,8 +234,8 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
   attachment_generic_error EXCEPTION;
   PRAGMA EXCEPTION_INIT(attachment_generic_error, -20392);
 
-  attachment_constraint_violation EXCEPTION;
-  PRAGMA EXCEPTION_INIT(attachment_constraint_violation, -20393);
+  attachment_cnstraint_violation EXCEPTION;
+  PRAGMA EXCEPTION_INIT(attachment_cnstraint_violation, -20393);
   
   ------------------------------------------------------------------
   -- ACTIVITY LOG

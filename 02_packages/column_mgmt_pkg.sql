@@ -19,5 +19,5 @@ CREATE OR REPLACE PACKAGE column_mgmt_pkg IS
   PROCEDURE reorder_column_prc(p_column_id    IN column_def.id%TYPE
                               ,p_new_position IN column_def.position%TYPE);
 
-END board_mgmt_pkg;
+END column_mgmt_pkg;
 /

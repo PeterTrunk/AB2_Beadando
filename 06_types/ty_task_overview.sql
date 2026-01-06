@@ -8,7 +8,7 @@ CREATE TYPE ty_task_overview AS OBJECT
   status_name      VARCHAR2(64),
   task_position    NUMBER,
   priority         VARCHAR2(32),
-  created_at       DATE,
+  last_modified    DATE,
   due_date         DATE,
   closed_at        DATE,
   created_by_id    NUMBER,

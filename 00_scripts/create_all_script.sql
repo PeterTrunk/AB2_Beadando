@@ -1,4 +1,563 @@
-﻿-- Procedure arra hogy automatikus id és created_at adat kerüljön insertkor
+﻿
+
+
+-- create_all_tables_script.sql
+
+DECLARE
+  CURSOR cur IS
+    SELECT 'alter system kill session ''' || sid || ',' || serial# || '''' AS command
+      FROM v$session
+     WHERE username = 'PMA_MANAGER';
+BEGIN
+  FOR c IN cur
+  LOOP
+    EXECUTE IMMEDIATE c.command;
+  END LOOP;
+END;
+/
+
+DECLARE
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_count FROM dba_users t WHERE t.username='PMA_MANAGER';
+  IF v_count = 1 THEN 
+    EXECUTE IMMEDIATE 'DROP USER pma_manager CASCADE';
+  END IF;
+END;
+/
+
+CREATE USER pma_manager 
+  IDENTIFIED BY "12345678" 
+  DEFAULT TABLESPACE users
+  QUOTA UNLIMITED ON users
+;
+
+GRANT CREATE TRIGGER to pma_manager;
+GRANT CREATE SESSION TO pma_manager;
+GRANT CREATE TABLE TO pma_manager;
+GRANT CREATE VIEW TO pma_manager;
+GRANT CREATE SEQUENCE TO pma_manager;
+GRANT CREATE PROCEDURE TO pma_manager;
+GRANT CREATE TYPE TO pma_manager;
+
+ALTER SESSION SET CURRENT_SCHEMA=pma_manager;
+
+-- Creating tables  --
+
+CREATE TABLE app_user(
+  id              NUMBER          NOT NULL
+  ,email          VARCHAR2(255)   UNIQUE NOT NULL
+  ,display_name   VARCHAR2(120)   NOT NULL
+  ,password_hash  VARCHAR2(255)
+  ,is_active      number(1)       DEFAULT 0 NOT NULL
+  ,created_at     DATE            DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE app_user
+      ADD CONSTRAINT app_user_pk PRIMARY KEY (id);
+      
+CREATE SEQUENCE app_user_seq START WITH 100;
+
+COMMENT ON TABLE app_user IS
+  'Felhasználói tábla: bejelentkezési adatok, alap profil információk.';
+
+COMMENT ON COLUMN app_user.id IS 'Egyedi felhasználó azonosító.';
+COMMENT ON COLUMN app_user.email IS 'E-mail cím, egyedi, belépéshez használt.';
+COMMENT ON COLUMN app_user.display_name IS 'Felhasználó megjelenített neve.';
+COMMENT ON COLUMN app_user.password_hash IS 'Titkosított jelszó.';
+COMMENT ON COLUMN app_user.is_active IS 'Aktivitási státusz.';
+
+CREATE TABLE app_role(
+  id           NUMBER         NOT NULL
+  ,role_name   VARCHAR2(64)   UNIQUE NOT NULL
+  ,description VARCHAR2(255)
+  ,created_at  DATE           DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE app_role
+      ADD CONSTRAINT pk_app_role PRIMARY KEY (id);
+
+CREATE SEQUENCE app_role_seq START WITH 1;
+
+COMMENT ON TABLE app_role IS
+  'Felhasználói szerepkörök (jogkörök csoportosítása).';
+
+COMMENT ON COLUMN app_role.role_name IS 'Szerepkör neve, egyedi.';
+
+CREATE TABLE app_project(
+  id              NUMBER          PRIMARY KEY
+  ,project_name   VARCHAR2(140)   UNIQUE NOT NULL
+  ,proj_key       VARCHAR2(16)    UNIQUE NOT NULL
+  ,task_seq_name  VARCHAR2(30)    
+  ,description    VARCHAR2(2000)
+  ,owner_id       NUMBER
+  ,is_archived    NUMBER(1)       DEFAULT 0 NOT NULL
+  ,created_at     DATE            DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE app_project
+      ADD CONSTRAINT fk_app_project_owner FOREIGN KEY (owner_id) REFERENCES app_user(id);
+
+CREATE SEQUENCE app_project_seq START WITH 1;
+
+COMMENT ON TABLE app_project IS
+  'Projekt entitás: feladatok és boardok szervezése.';
+
+COMMENT ON COLUMN app_project.proj_key IS 'Projekt kulcs, pl: PMA, amelyből a task azonosítók képződnek. (pl: PMA-100)';
+COMMENT ON COLUMN app_project.is_archived IS 'Archivált-e a projekt, akkor amikor vége van.';
+
+CREATE TABLE app_user_role(
+  user_id      NUMBER
+  ,role_id     NUMBER 
+  ,assigned_at DATE     DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE app_user_role
+      ADD (CONSTRAINT pk_app_user_role PRIMARY KEY (user_id, role_id),
+      CONSTRAINT fk_app_user_role_user FOREIGN KEY (user_id) REFERENCES app_user(id),
+      CONSTRAINT fk_app_user_role_role FOREIGN KEY (role_id) REFERENCES app_role(id));
+
+CREATE SEQUENCE app_user_role_seq START WITH 1;
+
+COMMENT ON TABLE app_user_role IS
+  'Felhasználó - szerepkör hozzárendelések.';
+
+CREATE TABLE project_member(
+  project_id    NUMBER        NOT NULL
+  ,user_id      NUMBER        NOT NULL
+  ,project_role VARCHAR2(32)
+  ,joined_at    DATE          DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE project_member
+      ADD (CONSTRAINT pk_project_member PRIMARY KEY (project_id, user_id),
+      CONSTRAINT fk_project_member_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT fk_project_member_user FOREIGN KEY (user_id) REFERENCES app_user(id));
+
+COMMENT ON TABLE project_member IS
+  'Projekt - felhasználó hozzárendelések a csapattagság kezeléséhez.';
+
+COMMENT ON COLUMN project_member.project_role IS 'Felhasználó projektbeli szerepe (pl. fejlesztő, reviewer, projekt manager, stb).';
+
+CREATE TABLE app_activity(
+  id            NUMBER        NOT NULL
+  ,project_id   NUMBER        NOT NULL
+  ,actor_id     NUMBER        NOT NULL
+  ,entity_type  VARCHAR2(64)  NOT NULL
+  ,entity_id    NUMBER        NOT NULL
+  ,action       VARCHAR2(64)  NOT NULL
+  ,payload      VARCHAR2(255)
+  ,created_at   DATE          DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE app_activity
+      ADD (CONSTRAINT pk_app_activity PRIMARY KEY (id),
+      CONSTRAINT fk_app_activity_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT fk_app_activity_user FOREIGN KEY (actor_id) REFERENCES app_user(id));
+
+CREATE SEQUENCE app_activity_seq START WITH 1;
+
+COMMENT ON TABLE app_activity IS
+  'Felhasználói események naplózása: KI MIT, MIKOR, MIT módosított / hozzáadott / létrehozott. 
+  Olyan napló amit a felhasználók is látnak a UI-on, 
+  hogy tudják hogy milyen események történtek a közelmultban.';
+
+COMMENT ON COLUMN app_activity.entity_type IS 'Érintett entitás típusa (TASK, COMMENT, PR, stb).';
+COMMENT ON COLUMN app_activity.entity_id IS 'Érintett entitás azonosítója.';
+COMMENT ON COLUMN app_activity.action IS 'A végrehajtott művelet.';
+
+CREATE TABLE labels(
+  id          NUMBER        NOT NULL
+  ,project_id NUMBER        NOT NULL
+  ,label_name VARCHAR2(64)  NOT NULL
+  ,color      VARCHAR2(7)   NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE labels
+      ADD (CONSTRAINT pk_labels PRIMARY KEY (id),
+      CONSTRAINT fk_labels_project FOREIGN KEY (project_id) REFERENCES app_project(id));
+
+CREATE SEQUENCE labels_seq START WITH 1;
+
+COMMENT ON TABLE labels IS
+  'Feladatok kategorizálására szolgáló címkék egy projekten belül.';
+
+COMMENT ON COLUMN labels.color IS
+  'Címke színe hex formátumban (#RRGGBB).';
+
+CREATE TABLE board(
+  id            NUMBER        NOT NULL
+  ,project_id   NUMBER        NOT NULL
+  ,board_name   VARCHAR2(64)  NOT NULL
+  ,is_default   NUMBER(1)     DEFAULT 0 NOT NULL
+  ,position     NUMBER        NOT NULL
+  ,created_at   DATE          DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE board
+      ADD(
+      CONSTRAINT pk_board PRIMARY KEY (id),
+      CONSTRAINT fk_board_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT uq_board_name_project UNIQUE (project_id, board_name)
+      );
+      
+CREATE SEQUENCE board_seq START WITH 1;
+
+COMMENT ON TABLE board IS
+  'Kanban board, amely egy projekt oszlopait és vizuális felépítését adja.';
+  
+CREATE TABLE task_status (
+  id          NUMBER        NOT NULL,
+  code        VARCHAR2(32)  NOT NULL,    -- pl. 'INBACKLOG' 'TODO', 'WIP', 'REVIEW', 'DONE'
+  name        VARCHAR2(64)  NOT NULL,    -- pl. 'In Backlog' 'To-Do', 'Work in progress'
+  description VARCHAR2(512),
+  is_final    NUMBER(1)     DEFAULT 0 NOT NULL,  -- 0 = nem lezárt, 1 = lezárt
+  position    NUMBER        NOT NULL            -- sorrend riportokhoz / listákhoz
+)
+TABLESPACE users;
+
+ALTER TABLE task_status
+  ADD (
+    CONSTRAINT pk_task_status PRIMARY KEY (id),
+    CONSTRAINT uq_task_status_code UNIQUE (code),
+    CONSTRAINT chk_task_status_is_final CHECK (is_final IN (0,1))
+  );
+
+CREATE SEQUENCE task_status_seq START WITH 1;
+
+
+CREATE TABLE integration(
+  id              NUMBER          NOT NULL
+  ,project_id     NUMBER          UNIQUE NOT NULL
+  ,provider       VARCHAR2(16)    UNIQUE NOT NULL
+  ,repo_full_name VARCHAR2(255)   UNIQUE NOT NULL
+  ,access_token   VARCHAR2(255)   NOT NULL
+  ,webhook_secret VARCHAR2(255)   NOT NULL
+  ,is_enabled     NUMBER(1)       DEFAULT 1 NOT NULL
+  ,created_at     DATE            DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE integration
+      ADD (CONSTRAINT pk_integration PRIMARY KEY (id),
+      CONSTRAINT fk_integration_project FOREIGN KEY (project_id) REFERENCES app_project(id));
+
+CREATE SEQUENCE integration_seq START WITH 1;
+
+COMMENT ON TABLE integration IS
+  'Projekt - külső rendszer (GitHub, GitLab) integráció beállításai.';
+  
+CREATE TABLE column_def(
+  id                NUMBER        NOT NULL
+  ,board_id         NUMBER        NOT NULL
+  ,column_name      VARCHAR2(64)  NOT NULL
+  ,wip_limit        NUMBER
+  ,position         NUMBER        NOT NULL
+  ,status_id        NUMBER
+)
+TABLESPACE users;
+
+ALTER TABLE column_def
+   ADD(
+      CONSTRAINT pk_column_def PRIMARY KEY (id),
+      CONSTRAINT fk_column_def_board FOREIGN KEY (board_id) REFERENCES board(id),
+      CONSTRAINT uq_column_def_name_per_board UNIQUE (board_id, column_name),
+      CONSTRAINT uq_column_def_pos_per_board UNIQUE (board_id, position),
+      CONSTRAINT chk_column_def_wip_positive CHECK (wip_limit > 0),
+      CONSTRAINT uq_column_def_status_per_board UNIQUE (board_id, status_id),
+      CONSTRAINT fk_column_def_status FOREIGN KEY (status_id) REFERENCES task_status(id)
+   );
+
+CREATE SEQUENCE column_def_seq START WITH 1;
+
+COMMENT ON TABLE column_def IS
+  'Board oszlopok definíciója, WIP limitek, pozíció és kapcsolt státusz.';
+
+CREATE TABLE sprint(
+  id            NUMBER        NOT NULL
+  ,project_id   NUMBER        NOT NULL
+  ,board_id     NUMBER        NOT NULL
+  ,sprint_name  VARCHAR2(64)  NOT NULL
+  ,goal         VARCHAR2(255) NOT NULL
+  ,start_date   DATE          DEFAULT SYSDATE NOT NULL
+  ,end_date     DATE          NOT NULL
+  ,state        VARCHAR2(16)  NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE sprint
+      ADD (CONSTRAINT pk_sprint PRIMARY KEY (id),
+      CONSTRAINT fk_sprint_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT fk_sprint_board FOREIGN KEY (board_id) REFERENCES board(id),
+      CONSTRAINT uq_sprint_name_per_project UNIQUE (project_id, sprint_name),
+      CONSTRAINT chk_sprint_dates_valid CHECK (end_date >= start_date),
+      CONSTRAINT chk_sprint_state CHECK (state IN ('PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED')));
+
+CREATE SEQUENCE sprint_seq START WITH 1;
+
+COMMENT ON TABLE sprint IS
+  'Időszakos fejlesztési ciklus (Scrum sprint), státuszkezeléssel.';
+
+CREATE TABLE task(
+  id              NUMBER        NOT NULL
+  ,project_id     NUMBER        NOT NULL
+  ,board_id       NUMBER        NOT NULL
+  ,column_id      NUMBER        NOT NULL
+  ,sprint_id      NUMBER        NOT NULL
+  ,created_by     NUMBER        NOT NULL
+  ,task_key       VARCHAR2(32)  NOT NULL
+  ,title          VARCHAR2(128) NOT NULL
+  ,description    VARCHAR2(512)
+  ,status_id      NUMBER        NOT NULL
+  ,priority       VARCHAR2(32)
+  ,estimated_min  NUMBER
+  ,due_date       DATE
+  ,closed_at      DATE
+  ,position       NUMBER
+)
+TABLESPACE users;
+
+ALTER TABLE task
+      ADD(
+      CONSTRAINT pk_task PRIMARY KEY (id),
+      
+      CONSTRAINT uq_task_key_per_project UNIQUE (project_id, task_key),
+      
+      CONSTRAINT chk_task_priority CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+      
+      CONSTRAINT chk_task_estimated_min CHECK (estimated_min IS NULL OR estimated_min >= 0),
+      
+      CONSTRAINT fk_task_project FOREIGN KEY (project_id) REFERENCES app_project(id),
+      CONSTRAINT fk_task_board FOREIGN KEY (board_id) REFERENCES board(id),
+      CONSTRAINT fk_task_column FOREIGN KEY (column_id) REFERENCES column_def(id),
+      CONSTRAINT fk_task_sprint FOREIGN KEY (sprint_id) REFERENCES sprint(id),
+      CONSTRAINT fk_task_app_user FOREIGN KEY (created_by) REFERENCES app_user(id),
+      
+      CONSTRAINT fk_task_status FOREIGN KEY (status_id) REFERENCES task_status(id),
+      CONSTRAINT uq_task_position_per_column UNIQUE (column_id, position)
+      );
+     
+CREATE SEQUENCE task_seq START WITH 100;
+ 
+COMMENT ON TABLE task IS
+  'Feladat (issue, user story, bug): scrum/kaban projekt alap egysége.';
+
+COMMENT ON COLUMN task.task_key IS 'Feladat kulcs (pl. PMA-12).';
+COMMENT ON COLUMN task.created_by IS 'Létrehozó felhasználó azonosítója.';
+COMMENT ON COLUMN task.closed_at IS 'Lezárás időpontja, ha van.';
+
+CREATE TABLE task_assignment(
+  task_id       NUMBER  NOT NULL
+  ,user_id      NUMBER  NOT NULL
+  ,assigned_at  DATE    DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE task_assignment
+      ADD (CONSTRAINT pk_task_assignment PRIMARY KEY (task_id, user_id),
+      CONSTRAINT fk_task_assignment_task FOREIGN KEY (task_id) REFERENCES task(id),
+      CONSTRAINT fk_task_assignment_user FOREIGN KEY (user_id) REFERENCES app_user(id));
+
+COMMENT ON TABLE task_assignment IS
+  'Feladat - felelős hozzárendelése, semennyi vagy több assignee.';
+
+CREATE TABLE label_task(
+  task_id    NUMBER   NOT NULL
+  ,label_id  NUMBER   NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE label_task
+      ADD (CONSTRAINT pk_label_task PRIMARY KEY (task_id, label_id),
+      CONSTRAINT fk_label_task_label_id FOREIGN KEY (label_id) REFERENCES labels(id),
+      CONSTRAINT fk_label_task_task_id FOREIGN KEY (task_id) REFERENCES task(id));
+
+COMMENT ON TABLE label_task IS
+  'Task - Label kapcsolótábla: címkék hozzárendelése feladatokhoz.';
+
+
+CREATE TABLE app_comment(
+  id              NUMBER          NOT NULL
+  ,task_id        NUMBER          NOT NULL
+  ,user_id        NUMBER          NOT NULL
+  ,comment_body   VARCHAR2(1024)  NOT NULL
+  ,created_at     DATE            DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE app_comment
+      ADD (CONSTRAINT pk_app_comment PRIMARY KEY (id),
+      CONSTRAINT fk_app_comment_task FOREIGN KEY (task_id) REFERENCES task(id),
+      CONSTRAINT fk_app_comment_app_user FOREIGN KEY (user_id) REFERENCES app_user(id));
+
+CREATE SEQUENCE app_comment_seq START WITH 1;
+
+COMMENT ON TABLE app_comment IS
+  'Kommentek feladatokhoz.';
+
+CREATE TABLE commit_link(
+  id                NUMBER          NOT NULL
+  ,task_id          NUMBER          NOT NULL
+  ,provider         VARCHAR2(16)    NOT NULL
+  ,repo_full_name   VARCHAR2(255)   NOT NULL
+  ,commit_sha       VARCHAR2(40)    NOT NULL
+  ,message          VARCHAR2(4000)  NOT NULL
+  ,author_email     VARCHAR2(255)   NOT NULL
+  ,committed_at     DATE            NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE commit_link
+      ADD (CONSTRAINT pk_commit_link PRIMARY KEY (id),
+      CONSTRAINT fk_commit_link_task FOREIGN KEY (task_id) REFERENCES task(id),
+      CONSTRAINT uq_commit_link_task_commit UNIQUE (task_id, provider, repo_full_name, commit_sha),
+      CONSTRAINT chk_commit_link_provider CHECK (provider IN ('GITHUB', 'GITLAB', 'AZURE_DEVOPS'))); 
+
+CREATE SEQUENCE commit_link_seq START WITH 1;
+
+COMMENT ON TABLE commit_link IS
+  'Commit hivatkozások (repo, provider, SHA) taskokhoz kapcsolva. 
+  pl: Ha egy taskhoz kapcsolódó commit jött egy taskra, akkor az megjelenjen a task-nál';
+
+CREATE TABLE pr_link(
+  id                NUMBER          NOT NULL
+  ,task_id          NUMBER          NOT NULL
+  ,provider         VARCHAR2(16)    NOT NULL
+  ,repo_full_name   VARCHAR2(255)   NOT NULL
+  ,pr_number        NUMBER          NOT NULL
+  ,title            VARCHAR2(255)
+  ,state            VARCHAR2(24)    NOT NULL
+  ,created_at       DATE            DEFAULT SYSDATE NOT NULL
+  ,merged_at        DATE
+)
+TABLESPACE users;
+
+ALTER TABLE pr_link
+      ADD (CONSTRAINT pk_pr_link PRIMARY KEY (id),
+      CONSTRAINT fk_pr_link_task FOREIGN KEY (task_id) REFERENCES task(id),
+      CONSTRAINT uq_pr_link_task_pr UNIQUE (task_id, provider, repo_full_name, pr_number),
+      CONSTRAINT chk_pr_link_provider CHECK (provider IN ('GITHUB', 'GITLAB', 'AZURE_DEVOPS')),
+      CONSTRAINT chk_pr_link_state CHECK (state IN ('OPEN', 'CLOSED', 'MERGED')));
+
+CREATE SEQUENCE pr_link_seq START WITH 100;
+
+COMMENT ON TABLE pr_link IS
+  'Pull Request hivatkozások taskokhoz, állapot és metaadatok.
+  A commit-hoz hasonlóan megjelenik a tasknál egy pr, és annak status-át is jelezve';
+
+CREATE TABLE attachment(
+  id                NUMBER            NOT NULL
+  ,task_id          NUMBER            NOT NULL
+  ,uploaded_by      NUMBER            NOT NULL
+  ,file_name        VARCHAR2(255)     NOT NULL
+  ,content_type     VARCHAR2(128)     NOT NULL
+  ,size_bytes       NUMBER            NOT NULL
+  ,storage_path     VARCHAR2(255)     NOT NULL
+  ,attachment_type  VARCHAR2(16)
+  ,created_at       DATE              DEFAULT SYSDATE NOT NULL
+)
+TABLESPACE users;
+
+ALTER TABLE attachment
+      ADD (CONSTRAINT pk_attachment PRIMARY KEY (id),
+      CONSTRAINT fk_attachment_task FOREIGN KEY (task_id) REFERENCES task(id),
+      CONSTRAINT fk_attachment_uploaded_by FOREIGN KEY (uploaded_by) REFERENCES app_user(id),
+      CONSTRAINT chk_attachment_size_positive CHECK (size_bytes > 0),
+      CONSTRAINT uq_attachment_storage_path UNIQUE (storage_path));
+      
+CREATE SEQUENCE attachment_seq START WITH 1;
+
+CREATE TABLE app_error_log (
+  id              NUMBER          NOT NULL,
+  err_time        DATE            DEFAULT SYSDATE NOT NULL,
+  module_name     VARCHAR2(128),
+  procedure_name  VARCHAR2(128),
+  error_code      NUMBER,
+  error_msg       VARCHAR2(4000),
+  context         VARCHAR2(4000),
+  api varchar2(100)
+)
+TABLESPACE users;
+
+ALTER TABLE app_error_log
+  ADD CONSTRAINT pk_app_error_log PRIMARY KEY (id);
+
+CREATE SEQUENCE app_error_log_seq START WITH 1;
+
+COMMENT ON TABLE app_error_log IS
+  'Alkalmazás szintű hiba log tábla.';
+
+-- create_all_types_script.sql
+
+CREATE TYPE ty_task_overview AS OBJECT
+(
+  task_id          NUMBER,
+  task_key         VARCHAR2(32),
+  title            VARCHAR2(128),
+  description      VARCHAR2(512),
+  status_code      VARCHAR2(32),
+  status_name      VARCHAR2(64),
+  task_position    NUMBER,
+  priority         VARCHAR2(32),
+  last_modified    DATE,
+  due_date         DATE,
+  closed_at        DATE,
+  created_by_id    NUMBER,
+  created_by_name  VARCHAR2(120),
+  sprint_id        NUMBER,
+  sprint_name      VARCHAR2(64),
+  
+  -- Aggregációs mezők
+  assignees_text VARCHAR2(400),
+  attachment_count NUMBER,
+  attachment_types VARCHAR2(200),
+  labels_text      VARCHAR2(400),
+  has_commit       CHAR(1),
+  has_pr           CHAR(1)
+)
+;
+
+CREATE OR REPLACE TYPE ty_task_overview_l AS TABLE OF ty_task_overview;
+/
+
+
+CREATE OR REPLACE TYPE ty_column_overview AS OBJECT
+(
+  column_id   NUMBER,
+  column_name VARCHAR2(64),
+  wip_limit   NUMBER,
+  status_code VARCHAR2(32),
+  status_name VARCHAR2(64),
+  tasks       ty_task_overview_l
+)
+;
+/
+
+CREATE OR REPLACE TYPE ty_column_overview_l AS TABLE OF ty_column_overview;
+/
+
+CREATE OR REPLACE TYPE ty_board_overview AS OBJECT
+(
+  board_id    NUMBER,
+  board_name  VARCHAR2(64),
+  sprint_id   NUMBER,
+  sprint_name VARCHAR2(64),
+  column_list ty_column_overview_l
+)
+;
+/
+
+-- create_all_packages_functions_procedures.sql
+
+-- Procedure arra hogy automatikus id és created_at adat kerüljön insertkor
 
 CREATE OR REPLACE PROCEDURE create_auto_id_created_trg_prc(p_table_name IN VARCHAR2) IS
   v_tab         VARCHAR2(30);
@@ -3562,5 +4121,591 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
 
 END board_overview_pkg;
 /
+
+-- insert_data_script.sql
+
+DECLARE
+  -- szerepkör ID-k
+  v_admin_role_id         app_role.id%TYPE;
+  v_project_owner_role_id app_role.id%TYPE;
+  v_developer_role_id     app_role.id%TYPE;
+
+  -- user ID-k
+  v_admin_user_id app_user.id%TYPE;
+  v_peter_user_id app_user.id%TYPE;
+  v_dev_user_id   app_user.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- SZEREPKÖRÖK
+  --------------------------------------------------------------------
+  auth_mgmt_pkg.create_role_prc(p_role_name   => 'ADMIN',
+                                p_description => 'Rendszeradminisztrátor',
+                                p_role_id     => v_admin_role_id);
+
+  auth_mgmt_pkg.create_role_prc(p_role_name   => 'PROJECT_OWNER',
+                                p_description => 'Projekt tulajdonos / vezető',
+                                p_role_id     => v_project_owner_role_id);
+
+  auth_mgmt_pkg.create_role_prc(p_role_name   => 'DEVELOPER',
+                                p_description => 'Fejlesztő csapattag',
+                                p_role_id     => v_developer_role_id);
+
+  --------------------------------------------------------------------
+  -- FELHASZNÁLÓK
+  --------------------------------------------------------------------
+  auth_mgmt_pkg.create_user_prc(p_email         => 'admin@example.com',
+                                p_display_name  => 'Admin Felhasználó',
+                                p_password_hash => 'hashed_admin_pw',
+                                p_is_active     => 1,
+                                p_user_id       => v_admin_user_id);
+
+  auth_mgmt_pkg.create_user_prc(p_email         => 'peter@example.com',
+                                p_display_name  => 'Trunk Péter',
+                                p_password_hash => 'hashed_peter_pw',
+                                p_is_active     => 1,
+                                p_user_id       => v_peter_user_id);
+
+  auth_mgmt_pkg.create_user_prc(p_email         => 'dev@example.com',
+                                p_display_name  => 'Fejlesztő Béla',
+                                p_password_hash => 'hashed_dev_pw',
+                                p_is_active     => 0,
+                                p_user_id       => v_dev_user_id);
+
+  --------------------------------------------------------------------
+  -- FELHASZNÁLÓ–SZEREPKÖR hozzárendelések
+  --------------------------------------------------------------------
+  -- admin: ADMIN
+  auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_admin_user_id,
+                                        p_role_id => v_admin_role_id);
+
+  -- admin: PROJECT_OWNER
+  auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_admin_user_id,
+                                        p_role_id => v_project_owner_role_id);
+
+  -- Péter: PROJECT_OWNER
+  auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_peter_user_id,
+                                        p_role_id => v_project_owner_role_id);
+
+  -- Péter: DEVELOPER
+  auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_peter_user_id,
+                                        p_role_id => v_developer_role_id);
+
+  -- Dev Béla: DEVELOPER
+  auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_dev_user_id,
+                                        p_role_id => v_developer_role_id);
+END;
+/
+
+DECLARE
+  v_pma_id    app_project.id%TYPE;
+  v_devops_id app_project.id%TYPE;
+
+  v_admin_id app_user.id%TYPE;
+  v_peter_id app_user.id%TYPE;
+  v_dev_id   app_user.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- FELHASZNÁLÓ ID-K BETÖLTÉSE
+  --------------------------------------------------------------------
+  SELECT id
+    INTO v_admin_id
+    FROM app_user
+   WHERE email = 'admin@example.com';
+  SELECT id
+    INTO v_peter_id
+    FROM app_user
+   WHERE email = 'peter@example.com';
+  SELECT id INTO v_dev_id FROM app_user WHERE email = 'dev@example.com';
+
+  --------------------------------------------------------------------
+  -- PROJEKTEK LÉTREHOZÁSA
+  --------------------------------------------------------------------
+  project_mgmt_pkg.create_project_prc(p_project_name => 'PMA - Projektmenedzsment app',
+                                      p_proj_key     => 'PMA',
+                                      p_description  => 'Saját hosztolású projektmenedzsment alkalmazás (kanban + statisztikák + Git integráció).',
+                                      p_owner_id     => v_admin_id,
+                                      p_project_id   => v_pma_id);
+
+  project_mgmt_pkg.create_project_prc(p_project_name => 'DEVOPS - Demo projekt',
+                                      p_proj_key     => 'DEVOPS',
+                                      p_description  => 'Demo projekt DevOps pipeline-ok és issue tracking kipróbálásához.',
+                                      p_owner_id     => v_peter_id,
+                                      p_project_id   => v_devops_id);
+
+  --------------------------------------------------------------------
+  -- PROJEKT TAGSÁGOK (PROJECT_MEMBER)
+  --------------------------------------------------------------------
+  -- PMA: admin = OWNER
+  project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_pma_id,
+                                              p_user_id      => v_admin_id,
+                                              p_project_role => 'OWNER');
+
+  -- PMA: Péter = DEVELOPER
+  project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_pma_id,
+                                              p_user_id      => v_peter_id,
+                                              p_project_role => 'DEVELOPER');
+
+  -- PMA: Dev Béla = DEVELOPER
+  project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_pma_id,
+                                              p_user_id      => v_dev_id,
+                                              p_project_role => 'DEVELOPER');
+
+  -- DEVOPS: Péter = OWNER
+  project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_devops_id,
+                                              p_user_id      => v_peter_id,
+                                              p_project_role => 'OWNER');
+END;
+/
+
+DECLARE
+  -- projektek
+  v_pma_id    app_project.id%TYPE;
+  v_devops_id app_project.id%TYPE;
+
+  -- státusz ID-k
+  v_backlog_id    task_status.id%TYPE;
+  v_todo_id       task_status.id%TYPE;
+  v_inprogress_id task_status.id%TYPE;
+  v_review_id     task_status.id%TYPE;
+  v_done_id       task_status.id%TYPE;
+
+  -- board ID-k
+  v_pma_board_id    board.id%TYPE;
+  v_devops_board_id board.id%TYPE;
+
+  -- oszlop ID-k
+  v_col_backlog_id column_def.id%TYPE;
+  v_col_todo_id    column_def.id%TYPE;
+  v_col_inprog_id  column_def.id%TYPE;
+  v_col_done_id    column_def.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- 1. TASK STATUSOK
+  --------------------------------------------------------------------
+  create_task_status_prc(p_code        => 'BACKLOG',
+                         p_name        => 'Backlog',
+                         p_description => 'Ötletek, még nem tervezett feladatok.',
+                         p_is_final    => 0,
+                         p_position    => 1,
+                         p_status_id   => v_backlog_id);
+
+  create_task_status_prc(p_code        => 'TODO',
+                         p_name        => 'To Do',
+                         p_description => 'Következő sprintben megvalósítandó feladatok.',
+                         p_is_final    => 0,
+                         p_position    => 2,
+                         p_status_id   => v_todo_id);
+
+  create_task_status_prc(p_code        => 'IN_PROGRESS',
+                         p_name        => 'In Progress',
+                         p_description => 'Folyamatban lévő munka.',
+                         p_is_final    => 0,
+                         p_position    => 3,
+                         p_status_id   => v_inprogress_id);
+
+  create_task_status_prc(p_code        => 'REVIEW',
+                         p_name        => 'Review',
+                         p_description => 'Kód review / tesztelés alatt.',
+                         p_is_final    => 0,
+                         p_position    => 4,
+                         p_status_id   => v_review_id);
+
+  create_task_status_prc(p_code        => 'DONE',
+                         p_name        => 'Done',
+                         p_description => 'Befejezett, lezárt feladatok.',
+                         p_is_final    => 1,
+                         p_position    => 5,
+                         p_status_id   => v_done_id);
+
+  --------------------------------------------------------------------
+  -- 2. PROJEKT ID-K
+  --------------------------------------------------------------------
+  SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
+  SELECT id INTO v_devops_id FROM app_project WHERE proj_key = 'DEVOPS';
+
+  --------------------------------------------------------------------
+  -- 3. BOARDOK (board_mgmt_pkg)
+  --------------------------------------------------------------------
+  board_mgmt_pkg.create_board_prc(p_project_id => v_pma_id,
+                                  p_board_name => 'PMA Main Board',
+                                  p_is_default => 1,
+                                  p_position   => 1,
+                                  p_board_id   => v_pma_board_id);
+
+  board_mgmt_pkg.create_board_prc(p_project_id => v_devops_id,
+                                  p_board_name => 'DEVOPS Board',
+                                  p_is_default => 1,
+                                  p_position   => 1,
+                                  p_board_id   => v_devops_board_id);
+
+  --------------------------------------------------------------------
+  -- 4. OSZLOPOK (column_mgmt_pkg) – PMA Main Board
+  --------------------------------------------------------------------
+  -- BACKLOG
+  column_mgmt_pkg.create_column_prc(p_board_id    => v_pma_board_id,
+                                    p_column_name => 'Backlog',
+                                    p_wip_limit   => NULL,
+                                    p_position    => 1,
+                                    p_status_code => 'BACKLOG',
+                                    p_column_id   => v_col_backlog_id);
+
+  -- TODO
+  column_mgmt_pkg.create_column_prc(p_board_id    => v_pma_board_id,
+                                    p_column_name => 'To Do',
+                                    p_wip_limit   => 5,
+                                    p_position    => 2,
+                                    p_status_code => 'TODO',
+                                    p_column_id   => v_col_todo_id);
+
+  -- IN PROGRESS
+  column_mgmt_pkg.create_column_prc(p_board_id    => v_pma_board_id,
+                                    p_column_name => 'In Progress',
+                                    p_wip_limit   => 3,
+                                    p_position    => 3,
+                                    p_status_code => 'IN_PROGRESS',
+                                    p_column_id   => v_col_inprog_id);
+
+  -- DONE
+  column_mgmt_pkg.create_column_prc(p_board_id    => v_pma_board_id,
+                                    p_column_name => 'Done',
+                                    p_wip_limit   => NULL,
+                                    p_position    => 4,
+                                    p_status_code => 'DONE',
+                                    p_column_id   => v_col_done_id);
+END;
+/
+
+DECLARE
+  -- projektek / board / sprint
+  v_pma_id       app_project.id%TYPE;
+  v_pma_board_id board.id%TYPE;
+  v_sprint1_id   sprint.id%TYPE;
+
+  -- oszlopok
+  v_col_todo_id   column_def.id%TYPE;
+  v_col_inprog_id column_def.id%TYPE;
+  v_col_done_id   column_def.id%TYPE;
+
+  -- user ID-k
+  v_peter_id app_user.id%TYPE;
+  v_dev_id   app_user.id%TYPE;
+  v_admin_id app_user.id%TYPE;
+
+  -- status ID-k
+  v_status_todo_id   task_status.id%TYPE;
+  v_status_inprog_id task_status.id%TYPE;
+  v_status_done_id   task_status.id%TYPE;
+
+  -- task ID-k
+  v_task1_id task.id%TYPE;
+  v_task2_id task.id%TYPE;
+  v_task3_id task.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- 1. PMA projekt, board, oszlopok, user-ek, státuszok betöltése
+  --------------------------------------------------------------------
+  SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
+
+  SELECT b.id
+    INTO v_pma_board_id
+    FROM board b
+   WHERE b.project_id = v_pma_id
+     AND b.board_name = 'PMA Main Board';
+
+  SELECT c.id
+    INTO v_col_todo_id
+    FROM column_def c
+   WHERE c.board_id = v_pma_board_id
+     AND c.column_name = 'To Do';
+
+  SELECT c.id
+    INTO v_col_inprog_id
+    FROM column_def c
+   WHERE c.board_id = v_pma_board_id
+     AND c.column_name = 'In Progress';
+
+  SELECT c.id
+    INTO v_col_done_id
+    FROM column_def c
+   WHERE c.board_id = v_pma_board_id
+     AND c.column_name = 'Done';
+
+  SELECT id
+    INTO v_peter_id
+    FROM app_user
+   WHERE email = 'peter@example.com';
+  SELECT id INTO v_dev_id FROM app_user WHERE email = 'dev@example.com';
+  SELECT id
+    INTO v_admin_id
+    FROM app_user
+   WHERE email = 'admin@example.com';
+
+  SELECT id INTO v_status_todo_id FROM task_status WHERE code = 'TODO';
+  SELECT id
+    INTO v_status_inprog_id
+    FROM task_status
+   WHERE code = 'IN_PROGRESS';
+  SELECT id INTO v_status_done_id FROM task_status WHERE code = 'DONE';
+
+  --------------------------------------------------------------------
+  -- 2. Sprint 1 létrehozása – PMA
+  --------------------------------------------------------------------
+  sprint_mgmt_pkg.create_sprint_prc(p_project_id  => v_pma_id,
+                                    p_board_id    => v_pma_board_id,
+                                    p_sprint_name => 'Sprint 1',
+                                    p_goal        => 'Alap adatbázis és backend váz kialakítása.',
+                                    p_start_date  => DATE '2025-01-01',
+                                    p_end_date    => DATE '2025-01-14',
+                                    p_state       => 'ACTIVE',
+                                    p_sprint_id   => v_sprint1_id);
+
+  --------------------------------------------------------------------
+  -- 3. TASKOK – PMA
+  --------------------------------------------------------------------
+  -- 1. task – TODO: "DB séma kialakítása"
+  task_mgmt_pkg.create_task_prc(p_project_id    => v_pma_id,
+                                p_board_id      => v_pma_board_id,
+                                p_column_id     => v_col_todo_id,
+                                p_sprint_id     => v_sprint1_id,
+                                p_created_by    => v_peter_id,
+                                p_title         => 'DB séma kialakítása',
+                                p_description   => 'Az alap PMA adatbázis táblák és kapcsolatok létrehozása.',
+                                p_status_id     => v_status_todo_id,
+                                p_priority      => 'HIGH',
+                                p_estimated_min => 240,
+                                p_due_date      => DATE '2025-01-07',
+                                p_task_id       => v_task1_id);
+
+  -- 2. task – IN_PROGRESS: "Historizáció implementálása"
+  task_mgmt_pkg.create_task_prc(p_project_id    => v_pma_id,
+                                p_board_id      => v_pma_board_id,
+                                p_column_id     => v_col_inprog_id,
+                                p_sprint_id     => v_sprint1_id,
+                                p_created_by    => v_dev_id,
+                                p_title         => 'Historizáció implementálása',
+                                p_description   => 'DML flag, version, history tábla és triggerek beépítése a kritikus táblákra.',
+                                p_status_id     => v_status_inprog_id,
+                                p_priority      => 'MEDIUM',
+                                p_estimated_min => 180,
+                                p_due_date      => DATE '2025-01-10',
+                                p_task_id       => v_task2_id);
+
+  -- 3. task – DONE: "Alap felhasználók felvétele"
+  task_mgmt_pkg.create_task_prc(p_project_id    => v_pma_id,
+                                p_board_id      => v_pma_board_id,
+                                p_column_id     => v_col_done_id,
+                                p_sprint_id     => v_sprint1_id,
+                                p_created_by    => v_admin_id,
+                                p_title         => 'Alap felhasználók felvétele',
+                                p_description   => 'Admin és fejlesztő felhasználók létrehozása teszteléshez.',
+                                p_status_id     => v_status_done_id,
+                                p_priority      => 'LOW',
+                                p_estimated_min => 60,
+                                p_due_date      => DATE '2024-12-20',
+                                p_task_id       => v_task3_id);
+
+  -- explicit sorrend + closed_at
+  UPDATE task SET position = 1 WHERE id = v_task1_id;
+  UPDATE task SET position = 2 WHERE id = v_task2_id;
+
+  UPDATE task
+     SET position  = 3
+        ,closed_at = DATE '2024-12-21'
+   WHERE id = v_task3_id;
+
+  --------------------------------------------------------------------
+  -- 4. TASK ASSIGNMENT – hozzárendelések
+  --------------------------------------------------------------------
+  task_mgmt_pkg.assign_user_to_task_prc(p_task_id => v_task1_id,
+                                        p_user_id => v_peter_id);
+
+  task_mgmt_pkg.assign_user_to_task_prc(p_task_id => v_task2_id,
+                                        p_user_id => v_dev_id);
+
+  task_mgmt_pkg.assign_user_to_task_prc(p_task_id => v_task3_id,
+                                        p_user_id => v_admin_id);
+END;
+/
+
+DECLARE
+  -- projekt
+  v_pma_id app_project.id%TYPE;
+
+  -- label ID-k
+  v_label_backend_id  labels.id%TYPE;
+  v_label_frontend_id labels.id%TYPE;
+  v_label_bug_id      labels.id%TYPE;
+
+  -- task ID-k
+  v_task_db_schema_id task.id%TYPE;
+  v_task_hist_id      task.id%TYPE;
+  v_task_users_id     task.id%TYPE;
+
+  -- user ID-k
+  v_admin_id app_user.id%TYPE;
+  v_peter_id app_user.id%TYPE;
+
+  -- komment ID-k
+  v_comment1_id app_comment.id%TYPE;
+  v_comment2_id app_comment.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- 1. PMA projekt, taskok és userek betöltése
+  --------------------------------------------------------------------
+  SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
+
+  SELECT id
+    INTO v_task_db_schema_id
+    FROM task
+   WHERE title = 'DB séma kialakítása';
+
+  SELECT id
+    INTO v_task_hist_id
+    FROM task
+   WHERE title = 'Historizáció implementálása';
+
+  SELECT id
+    INTO v_task_users_id
+    FROM task
+   WHERE title = 'Alap felhasználók felvétele';
+
+  SELECT id
+    INTO v_admin_id
+    FROM app_user
+   WHERE email = 'admin@example.com';
+  SELECT id
+    INTO v_peter_id
+    FROM app_user
+   WHERE email = 'peter@example.com';
+
+  --------------------------------------------------------------------
+  -- 2. LABELS – PMA projekthez
+  --------------------------------------------------------------------
+  label_mgmt_pkg.create_label_prc(p_project_id => v_pma_id,
+                                  p_label_name => 'backend',
+                                  p_color      => '#1F77B4',
+                                  p_label_id   => v_label_backend_id);
+
+  label_mgmt_pkg.create_label_prc(p_project_id => v_pma_id,
+                                  p_label_name => 'frontend',
+                                  p_color      => '#FF7F0E',
+                                  p_label_id   => v_label_frontend_id);
+
+  label_mgmt_pkg.create_label_prc(p_project_id => v_pma_id,
+                                  p_label_name => 'bug',
+                                  p_color      => '#D62728',
+                                  p_label_id   => v_label_bug_id);
+
+  --------------------------------------------------------------------
+  -- 3. LABEL_TASK – feladatok címkézése
+  --------------------------------------------------------------------
+  -- DB séma kialakítása -> backend
+  label_mgmt_pkg.assign_label_to_task_prc(p_task_id  => v_task_db_schema_id,
+                                          p_label_id => v_label_backend_id);
+
+  -- Historizáció implementálása -> backend
+  label_mgmt_pkg.assign_label_to_task_prc(p_task_id  => v_task_hist_id,
+                                          p_label_id => v_label_backend_id);
+
+  -- Alap felhasználók felvétele -> bug
+  label_mgmt_pkg.assign_label_to_task_prc(p_task_id  => v_task_users_id,
+                                          p_label_id => v_label_bug_id);
+
+  --------------------------------------------------------------------
+  -- 4. KOMMENTEK – app_comment
+  --------------------------------------------------------------------
+  comment_mgmt_pkg.create_comment_prc(p_task_id      => v_task_db_schema_id,
+                                      p_user_id      => v_admin_id,
+                                      p_comment_body => 'Kérlek nézd át a constraint-eket és a history triggert is.',
+                                      p_comment_id   => v_comment1_id);
+
+  comment_mgmt_pkg.create_comment_prc(p_task_id      => v_task_hist_id,
+                                      p_user_id      => v_peter_id,
+                                      p_comment_body => 'Szerintem a D jelölés DELETE-nél jól működik, nézzük meg még egyszer a logot.',
+                                      p_comment_id   => v_comment2_id);
+END;
+/
+
+DECLARE
+  v_pma_id       app_project.id%TYPE;
+  v_hist_task_id task.id%TYPE;
+  v_db_task_id   task.id%TYPE;
+  v_peter_id     app_user.id%TYPE;
+
+  v_integration_id integration.id%TYPE;
+  v_pr_id          pr_link.id%TYPE;
+  v_attachment_id  attachment.id%TYPE;
+BEGIN
+  --------------------------------------------------------------------
+  -- 1. PMA projekt, taskok, user betöltése
+  --------------------------------------------------------------------
+  SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
+
+  SELECT id
+    INTO v_hist_task_id
+    FROM task
+   WHERE title = 'Historizáció implementálása';
+
+  SELECT id
+    INTO v_db_task_id
+    FROM task
+   WHERE title = 'DB séma kialakítása';
+
+  SELECT id
+    INTO v_peter_id
+    FROM app_user
+   WHERE email = 'peter@example.com';
+
+  --------------------------------------------------------------------
+  -- 2. INTEGRÁCIÓ – GITHUB
+  --------------------------------------------------------------------
+  git_integration_pkg.create_integration_prc(p_project_id     => v_pma_id,
+                                             p_provider       => 'GITHUB',
+                                             p_repo_full_name => 'trunkpeter/pma-demo',
+                                             p_access_token   => 'dummy-access-token',
+                                             p_webhook_secret => 'dummy-webhook-secret',
+                                             p_is_enabled     => 1,
+                                             p_integration_id => v_integration_id);
+
+  --------------------------------------------------------------------
+  -- 3. COMMIT LINK
+  --------------------------------------------------------------------
+  git_integration_pkg.add_commit_link_prc(p_task_id        => v_hist_task_id,
+                                          p_provider       => 'GITHUB',
+                                          p_repo_full_name => 'trunkpeter/pma-demo',
+                                          p_commit_sha     => 'abcdef1234567890abcdef1234567890abcdef12',
+                                          p_message        => 'Add history triggers and audit columns',
+                                          p_author_email   => 'dev@example.com',
+                                          p_committed_at   => DATE
+                                                              '2025-01-05');
+
+  --------------------------------------------------------------------
+  -- 4. PR LINK
+  --------------------------------------------------------------------
+  git_integration_pkg.add_pr_link_prc(p_task_id        => v_hist_task_id,
+                                      p_provider       => 'GITHUB',
+                                      p_repo_full_name => 'trunkpeter/pma-demo',
+                                      p_pr_number      => 42,
+                                      p_title          => 'Feature: historisation for core tables',
+                                      p_state          => 'MERGED',
+                                      p_created_at     => DATE '2025-01-06',
+                                      p_merged_at      => DATE '2025-01-07');
+
+  --------------------------------------------------------------------
+  -- 5. ATTACHMENT
+  --------------------------------------------------------------------
+  attachment_mgmt_pkg.create_attachment_prc(p_task_id         => v_db_task_id,
+                                            p_uploaded_by     => v_peter_id,
+                                            p_file_name       => 'db_schema_v1.png',
+                                            p_content_type    => 'image/png',
+                                            p_size_bytes      => 123456,
+                                            p_storage_path    => '/attachments/db_schema_v1.png',
+                                            p_attachment_type => 'DESIGN',
+                                            p_attachment_id   => v_attachment_id);
+END;
+/
+
+COMMIT;
+
 
 

@@ -21,7 +21,7 @@ BEGIN
 
 EXCEPTION
   WHEN no_data_found THEN
-    raise_application_error(-20300,
+    raise_application_error(-21000,
                             'task_status_sync_trg: nincs ilyen column_def.id: ' ||
                             :new.column_id);
 END;

@@ -70,12 +70,13 @@ BEGIN
 END;
 /
 
-DECLARE v_pma_id app_project.id%TYPE;
-v_devops_id app_project.id%TYPE;
+DECLARE
+  v_pma_id    app_project.id%TYPE;
+  v_devops_id app_project.id%TYPE;
 
-v_admin_id app_user.id%TYPE;
-v_peter_id app_user.id%TYPE;
-v_dev_id app_user.id%TYPE;
+  v_admin_id app_user.id%TYPE;
+  v_peter_id app_user.id%TYPE;
+  v_dev_id   app_user.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
   -- FELHASZNÁLÓ ID-K BETÖLTÉSE
@@ -131,26 +132,26 @@ END;
 /
 
 DECLARE
--- projektek
-v_pma_id app_project.id%TYPE;
-v_devops_id app_project.id%TYPE;
+  -- projektek
+  v_pma_id    app_project.id%TYPE;
+  v_devops_id app_project.id%TYPE;
 
--- státusz ID-k
-v_backlog_id task_status.id%TYPE;
-v_todo_id task_status.id%TYPE;
-v_inprogress_id task_status.id%TYPE;
-v_review_id task_status.id%TYPE;
-v_done_id task_status.id%TYPE;
+  -- státusz ID-k
+  v_backlog_id    task_status.id%TYPE;
+  v_todo_id       task_status.id%TYPE;
+  v_inprogress_id task_status.id%TYPE;
+  v_review_id     task_status.id%TYPE;
+  v_done_id       task_status.id%TYPE;
 
--- board ID-k
-v_pma_board_id board.id%TYPE;
-v_devops_board_id board.id%TYPE;
+  -- board ID-k
+  v_pma_board_id    board.id%TYPE;
+  v_devops_board_id board.id%TYPE;
 
--- oszlop ID-k
-v_col_backlog_id column_def.id%TYPE;
-v_col_todo_id column_def.id%TYPE;
-v_col_inprog_id column_def.id%TYPE;
-v_col_done_id column_def.id%TYPE;
+  -- oszlop ID-k
+  v_col_backlog_id column_def.id%TYPE;
+  v_col_todo_id    column_def.id%TYPE;
+  v_col_inprog_id  column_def.id%TYPE;
+  v_col_done_id    column_def.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
   -- 1. TASK STATUSOK
@@ -249,30 +250,30 @@ END;
 /
 
 DECLARE
--- projektek / board / sprint
-v_pma_id app_project.id%TYPE;
-v_pma_board_id board.id%TYPE;
-v_sprint1_id sprint.id%TYPE;
+  -- projektek / board / sprint
+  v_pma_id       app_project.id%TYPE;
+  v_pma_board_id board.id%TYPE;
+  v_sprint1_id   sprint.id%TYPE;
 
--- oszlopok
-v_col_todo_id column_def.id%TYPE;
-v_col_inprog_id column_def.id%TYPE;
-v_col_done_id column_def.id%TYPE;
+  -- oszlopok
+  v_col_todo_id   column_def.id%TYPE;
+  v_col_inprog_id column_def.id%TYPE;
+  v_col_done_id   column_def.id%TYPE;
 
--- user ID-k
-v_peter_id app_user.id%TYPE;
-v_dev_id app_user.id%TYPE;
-v_admin_id app_user.id%TYPE;
+  -- user ID-k
+  v_peter_id app_user.id%TYPE;
+  v_dev_id   app_user.id%TYPE;
+  v_admin_id app_user.id%TYPE;
 
--- status ID-k
-v_status_todo_id task_status.id%TYPE;
-v_status_inprog_id task_status.id%TYPE;
-v_status_done_id task_status.id%TYPE;
+  -- status ID-k
+  v_status_todo_id   task_status.id%TYPE;
+  v_status_inprog_id task_status.id%TYPE;
+  v_status_done_id   task_status.id%TYPE;
 
--- task ID-k
-v_task1_id task.id%TYPE;
-v_task2_id task.id%TYPE;
-v_task3_id task.id%TYPE;
+  -- task ID-k
+  v_task1_id task.id%TYPE;
+  v_task2_id task.id%TYPE;
+  v_task3_id task.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
   -- 1. PMA projekt, board, oszlopok, user-ek, státuszok betöltése
@@ -401,26 +402,26 @@ END;
 /
 
 DECLARE
--- projekt
-v_pma_id app_project.id%TYPE;
+  -- projekt
+  v_pma_id app_project.id%TYPE;
 
--- label ID-k
-v_label_backend_id labels.id%TYPE;
-v_label_frontend_id labels.id%TYPE;
-v_label_bug_id labels.id%TYPE;
+  -- label ID-k
+  v_label_backend_id  labels.id%TYPE;
+  v_label_frontend_id labels.id%TYPE;
+  v_label_bug_id      labels.id%TYPE;
 
--- task ID-k
-v_task_db_schema_id task.id%TYPE;
-v_task_hist_id task.id%TYPE;
-v_task_users_id task.id%TYPE;
+  -- task ID-k
+  v_task_db_schema_id task.id%TYPE;
+  v_task_hist_id      task.id%TYPE;
+  v_task_users_id     task.id%TYPE;
 
--- user ID-k
-v_admin_id app_user.id%TYPE;
-v_peter_id app_user.id%TYPE;
+  -- user ID-k
+  v_admin_id app_user.id%TYPE;
+  v_peter_id app_user.id%TYPE;
 
--- komment ID-k
-v_comment1_id app_comment.id%TYPE;
-v_comment2_id app_comment.id%TYPE;
+  -- komment ID-k
+  v_comment1_id app_comment.id%TYPE;
+  v_comment2_id app_comment.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
   -- 1. PMA projekt, taskok és userek betöltése
@@ -499,14 +500,15 @@ BEGIN
 END;
 /
 
-DECLARE v_pma_id app_project.id%TYPE;
-v_hist_task_id task.id%TYPE;
-v_db_task_id task.id%TYPE;
-v_peter_id app_user.id%TYPE;
+DECLARE
+  v_pma_id       app_project.id%TYPE;
+  v_hist_task_id task.id%TYPE;
+  v_db_task_id   task.id%TYPE;
+  v_peter_id     app_user.id%TYPE;
 
-v_integration_id integration.id%TYPE;
-v_pr_id pr_link.id%TYPE;
-v_attachment_id attachment.id%TYPE;
+  v_integration_id integration.id%TYPE;
+  v_pr_id          pr_link.id%TYPE;
+  v_attachment_id  attachment.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
   -- 1. PMA projekt, taskok, user betöltése
@@ -576,3 +578,5 @@ BEGIN
                                             p_attachment_id   => v_attachment_id);
 END;
 /
+
+COMMIT;

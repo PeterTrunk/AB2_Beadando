@@ -181,7 +181,7 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
   project_member_generic EXCEPTION;
   PRAGMA EXCEPTION_INIT(project_member_generic, -20344);
   ------------------------------------------------------------------
-  -- SPRINT (20360–20369)
+  -- SPRINT
   ------------------------------------------------------------------
   sprint_project_mismatch EXCEPTION;
   PRAGMA EXCEPTION_INIT(sprint_project_mismatch, -20360);
@@ -193,7 +193,7 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
   PRAGMA EXCEPTION_INIT(sprint_create_generic, -20362);
 
   ------------------------------------------------------------------
-  -- LABEL (20370–20379)
+  -- LABEL
   ------------------------------------------------------------------
   label_name_duplicate EXCEPTION;
   PRAGMA EXCEPTION_INIT(label_name_duplicate, -20370);
@@ -234,8 +234,20 @@ CREATE OR REPLACE PACKAGE pkg_exceptions IS
   attachment_generic_error EXCEPTION;
   PRAGMA EXCEPTION_INIT(attachment_generic_error, -20392);
 
-  attachment_constraint_violation EXCEPTION;
-  PRAGMA EXCEPTION_INIT(attachment_constraint_violation, -20393);
+  attachment_cnstraint_violation EXCEPTION;
+  PRAGMA EXCEPTION_INIT(attachment_cnstraint_violation, -20393);
+  
+  ------------------------------------------------------------------
+  -- ACTIVITY LOG
+  ------------------------------------------------------------------
+  activity_project_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(activity_project_not_found, -20400);
+
+  activity_actor_not_found EXCEPTION;
+  PRAGMA EXCEPTION_INIT(activity_actor_not_found, -20401);
+
+  activity_generic_error EXCEPTION;
+  PRAGMA EXCEPTION_INIT(activity_generic_error, -20402);
 
 END pkg_exceptions;
 /

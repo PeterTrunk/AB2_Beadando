@@ -73,7 +73,7 @@
                  FROM task
                 WHERE column_id = l_backlog_column_id
                   AND closed_at IS NULL
-                ORDER BY position, created_at
+                ORDER BY position
              )
        WHERE ROWNUM = 1;
     EXCEPTION

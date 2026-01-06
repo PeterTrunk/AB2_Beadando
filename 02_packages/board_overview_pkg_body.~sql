@@ -1,32 +1,96 @@
 CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
 
-  FUNCTION get_board_overview_fnc(
-    p_board_id  IN board.id%TYPE,
-    p_sprint_id IN sprint.id%TYPE
-  ) RETURN ty_board_overview IS
+  FUNCTION get_board_overview_fnc(p_board_id  IN board.id%TYPE
+                                 ,p_sprint_id IN sprint.id%TYPE)
+    RETURN ty_board_overview IS
 
-    l_board_name   board.board_name%TYPE;
-    l_sprint_name  sprint.sprint_name%TYPE;
+    -- Board meta
+    l_board_name       board.board_name%TYPE;
+    l_board_project_id board.project_id%TYPE;
 
-    l_columns      ty_column_overview_l := ty_column_overview_l();
-    l_tasks        ty_task_overview_l;
+    -- Sprint meta
+    l_sprint_name       sprint.sprint_name%TYPE;
+    l_sprint_project_id sprint.project_id%TYPE;
+    l_sprint_board_id   sprint.board_id%TYPE;
+
+    -- Aggregált eredmény
+    l_columns ty_column_overview_l := ty_column_overview_l();
+    l_tasks   ty_task_overview_l;
 
   BEGIN
     ----------------------------------------------------------------
-    -- 0. Board- és sprint-név beolvasása
+    -- Board metaadatok betöltése
     ----------------------------------------------------------------
-    SELECT board_name
-      INTO l_board_name
-      FROM board
-     WHERE id = p_board_id;
-
-    SELECT sprint_name
-      INTO l_sprint_name
-      FROM sprint
-     WHERE id = p_sprint_id;
+    BEGIN
+      SELECT board_name,
+             project_id
+        INTO l_board_name,
+             l_board_project_id
+        FROM board
+       WHERE id = p_board_id;
+    EXCEPTION
+      WHEN no_data_found THEN
+        err_log_pkg.log_error(
+          p_module_name    => 'BOARD_OVERVIEW',
+          p_procedure_name => 'get_board_overview_fnc',
+          p_error_code     => -20310,
+          p_error_msg      => 'Board not found',
+          p_context        => 'board_id=' || p_board_id ||
+                              '; sprint_id=' || p_sprint_id,
+          p_api            => NULL
+        );
+        RAISE pkg_exceptions.board_overview_board_not_found;
+    END;
 
     ----------------------------------------------------------------
-    -- 1. Oszlopok bejárása a boardon
+    -- Sprint metaadatok betöltése
+    ----------------------------------------------------------------
+    BEGIN
+      SELECT sprint_name,
+             project_id,
+             board_id
+        INTO l_sprint_name,
+             l_sprint_project_id,
+             l_sprint_board_id
+        FROM sprint
+       WHERE id = p_sprint_id;
+    EXCEPTION
+      WHEN no_data_found THEN
+        err_log_pkg.log_error(
+          p_module_name    => 'BOARD_OVERVIEW',
+          p_procedure_name => 'get_board_overview_fnc',
+          p_error_code     => -20310,
+          p_error_msg      => 'Sprint not found',
+          p_context        => 'board_id=' || p_board_id ||
+                              '; sprint_id=' || p_sprint_id,
+          p_api            => NULL
+        );
+        RAISE pkg_exceptions.board_overview_board_not_found;
+    END;
+
+    ----------------------------------------------------------------
+    -- Board–Sprint konzisztencia ellenõrzése
+    ----------------------------------------------------------------
+    IF l_sprint_board_id   <> p_board_id
+       OR l_sprint_project_id <> l_board_project_id
+    THEN
+      err_log_pkg.log_error(
+        p_module_name    => 'BOARD_OVERVIEW',
+        p_procedure_name => 'get_board_overview_fnc',
+        p_error_code     => -20311,
+        p_error_msg      => 'Sprint does not belong to the given board/project',
+        p_context        => 'board_id=' || p_board_id ||
+                            '; board_project_id=' || l_board_project_id ||
+                            '; sprint_id=' || p_sprint_id ||
+                            '; sprint_board_id=' || l_sprint_board_id ||
+                            '; sprint_project_id=' || l_sprint_project_id,
+        p_api            => NULL
+      );
+      RAISE pkg_exceptions.board_overview_sprint_mismatch;
+    END IF;
+
+    ----------------------------------------------------------------
+    -- Oszlopok bejárása a boardon
     ----------------------------------------------------------------
     FOR c_rec IN (
       SELECT c.id,
@@ -39,83 +103,72 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
           ON ts.id = c.status_id
        WHERE c.board_id = p_board_id
        ORDER BY c.position
-    ) LOOP
-
-      -- Task lista inicializálása az adott oszlophoz
-      l_tasks := ty_task_overview_l();
+    )
+    LOOP
+      l_tasks := ty_task_overview_l(); -- reset adott oszlophoz
 
       ----------------------------------------------------------------
-      -- 1.1. Taskok beolvasása az adott oszlophoz + sprinthez
-      --      (lezárt taskok kizárva)
+      -- Taskok beolvasása az adott oszlophoz + sprinthez
       ----------------------------------------------------------------
       FOR t_rec IN (
         SELECT t.id,
                t.task_key,
                t.title,
                t.description,
-               ts2.code              AS status_code,
-               ts2.name              AS status_name,
-               t.position            AS task_position,
+               ts2.code       AS status_code,
+               ts2.name       AS status_name,
+               t.position     AS task_position,
                t.priority,
-               t.created_at,
+               t.last_modified AS last_modified,
                t.due_date,
                t.closed_at,
-               u.id                  AS created_by_id,
-               u.display_name        AS created_by_name,
-               s.id                  AS sprint_id,
+               u.id           AS created_by_id,
+               u.display_name AS created_by_name,
+               s.id           AS sprint_id,
                s.sprint_name,
 
-               -- ----------------- ASSIGNEES -----------------
-               ( SELECT LISTAGG(u2.display_name, ', ')
+               -- ASSIGNEES
+               (SELECT listagg(u2.display_name, ', ')
                          WITHIN GROUP (ORDER BY u2.display_name)
-                   FROM task_assignment ta
-                   JOIN app_user u2
-                     ON u2.id = ta.user_id
-                  WHERE ta.task_id = t.id
-               )                      AS assignees_text,
+                  FROM task_assignment ta
+                  JOIN app_user u2
+                    ON u2.id = ta.user_id
+                 WHERE ta.task_id = t.id) AS assignees_text,
 
-               -- ----------------- ATTACHMENTS ---------------
-               ( SELECT COUNT(*)
-                   FROM attachment a
-                  WHERE a.task_id = t.id
-               )                      AS attachment_count,
+               -- ATTACHMENTS
+               (SELECT COUNT(*)
+                  FROM attachment a
+                 WHERE a.task_id = t.id) AS attachment_count,
 
-               ( SELECT LISTAGG(a.attachment_type, ', ')
+               (SELECT listagg(a.attachment_type, ', ')
                          WITHIN GROUP (ORDER BY a.attachment_type)
-                   FROM attachment a
-                  WHERE a.task_id = t.id
-               )                      AS attachment_types,
+                  FROM attachment a
+                 WHERE a.task_id = t.id) AS attachment_types,
 
-               -- ----------------- LABELS --------------------
-               ( SELECT LISTAGG(l.label_name, ', ')
+               -- LABELS
+               (SELECT listagg(l.label_name, ', ')
                          WITHIN GROUP (ORDER BY l.label_name)
-                   FROM label_task lt
-                   JOIN labels l
-                     ON l.id = lt.label_id
-                  WHERE lt.task_id = t.id
-               )                      AS labels_text,
+                  FROM label_task lt
+                  JOIN labels l
+                    ON l.id = lt.label_id
+                 WHERE lt.task_id = t.id) AS labels_text,
 
-               -- ----------------- GIT FLAGS -----------------
+               -- GIT FLAGS
                CASE
-                 WHEN EXISTS (
-                        SELECT 1
-                          FROM commit_link cl
-                         WHERE cl.task_id = t.id
-                      )
+                 WHEN EXISTS (SELECT 1
+                                FROM commit_link cl
+                               WHERE cl.task_id = t.id)
                  THEN 'Y'
                  ELSE 'N'
-               END                    AS has_commit,
+               END AS has_commit,
 
                CASE
-                 WHEN EXISTS (
-                        SELECT 1
-                          FROM pr_link pl
-                         WHERE pl.task_id = t.id
-                      )
+                 WHEN EXISTS (SELECT 1
+                                FROM pr_link pl
+                               WHERE pl.task_id = t.id)
                  THEN 'Y'
                  ELSE 'N'
-               END                    AS has_pr
-
+               END AS has_pr
           FROM task t
           JOIN task_status ts2
             ON ts2.id = t.status_id
@@ -128,7 +181,8 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
            AND t.sprint_id = p_sprint_id
            AND t.closed_at IS NULL
          ORDER BY t.position
-      ) LOOP
+      )
+      LOOP
         l_tasks.EXTEND;
         l_tasks(l_tasks.LAST) :=
           ty_task_overview(
@@ -140,7 +194,7 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
             t_rec.status_name,
             t_rec.task_position,
             t_rec.priority,
-            t_rec.created_at,
+            t_rec.last_modified,
             t_rec.due_date,
             t_rec.closed_at,
             t_rec.created_by_id,
@@ -157,7 +211,7 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
       END LOOP;
 
       ----------------------------------------------------------------
-      -- 1.2. Oszlop-objektum feltöltése + hozzáadása a board listájához
+      -- Oszlop-objektum felvétele a listába
       ----------------------------------------------------------------
       l_columns.EXTEND;
       l_columns(l_columns.LAST) :=
@@ -169,11 +223,10 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
           c_rec.status_name,
           l_tasks
         );
-
     END LOOP;
 
     ----------------------------------------------------------------
-    -- 2. Board_overview objektum összeállítása és visszaadása
+    -- Board_overview objektum összeállítása
     ----------------------------------------------------------------
     RETURN ty_board_overview(
       p_board_id,
@@ -184,13 +237,22 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
     );
 
   EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-      -- Ha a board vagy a sprint nem létezik
-      RAISE_APPLICATION_ERROR(
-        -20900,
-        'get_board_overview_fnc: nem található a megadott board vagy sprint. ' ||
-        '(board_id=' || p_board_id || ', sprint_id=' || p_sprint_id || ')'
+    WHEN pkg_exceptions.board_overview_board_not_found
+         OR pkg_exceptions.board_overview_sprint_mismatch
+    THEN
+      RAISE;
+
+    WHEN OTHERS THEN
+      err_log_pkg.log_error(
+        p_module_name    => 'BOARD_OVERVIEW',
+        p_procedure_name => 'get_board_overview_fnc',
+        p_error_code     => SQLCODE,
+        p_error_msg      => SQLERRM,
+        p_context        => 'board_id=' || p_board_id ||
+                            '; sprint_id=' || p_sprint_id,
+        p_api            => NULL
       );
+      RAISE pkg_exceptions.board_overview_generic;
   END get_board_overview_fnc;
 
 END board_overview_pkg;

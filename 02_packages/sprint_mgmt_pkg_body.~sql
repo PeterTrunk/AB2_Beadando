@@ -55,7 +55,8 @@ CREATE OR REPLACE PACKAGE BODY sprint_mgmt_pkg IS
       ,goal
       ,start_date
       ,end_date
-      ,state)
+      ,state
+      ,created_at)
     VALUES
       (p_project_id
       ,p_board_id
@@ -63,7 +64,8 @@ CREATE OR REPLACE PACKAGE BODY sprint_mgmt_pkg IS
       ,p_goal
       ,p_start_date
       ,p_end_date
-      ,p_state)
+      ,p_state
+      ,SYSDATE)
     RETURNING id INTO p_sprint_id;
   
   EXCEPTION
