@@ -1351,6 +1351,7 @@ CREATE OR REPLACE PACKAGE BODY err_log_pkg IS
                      ,p_error_msg      IN app_error_log.error_msg%TYPE
                      ,p_context        IN app_error_log.context%TYPE
                      ,p_api            IN app_error_log.api%TYPE) IS
+    PRAGMA AUTONOMOUS_TRANSACTION;
     l_id app_error_log.id%TYPE;
   BEGIN
     l_id := app_error_log_seq.nextval;
@@ -1913,7 +1914,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
   
     ------------------------------------------------------------------
     -- Pozíció meghatározása
-    -- Ha p_position NULL vagy < 1 → a projekt board-listájának végére rakjuk
+    -- Ha p_position NULL vagy < 1  a projekt board-listájának végére rakjuk
     ------------------------------------------------------------------
     IF p_position IS NULL
        OR p_position < 1
@@ -2300,82 +2301,124 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
   END update_column_prc;
 
   ------------------------------------------------------------------------------------------------------------------------------------
-
+  
+  --------------------------------------------------------------------
+  -- OSZLOP SORRENDEZÉS BIZTONSÁGOSAN (ÚJRASZÁMOZÁS + IDEIGLENES ELTOLÁS)
+  --------------------------------------------------------------------
   PROCEDURE reorder_column_prc(p_column_id    IN column_def.id%TYPE
                               ,p_new_position IN column_def.position%TYPE) IS
-    l_board_id column_def.board_id%TYPE;
-    l_old_pos  column_def.position%TYPE;
+    TYPE t_col_id_tab IS TABLE OF column_def.id%TYPE INDEX BY PLS_INTEGER;
+
+    l_all_ids    t_col_id_tab;  -- jelenlegi sorrend
+    l_new_ids    t_col_id_tab;  -- új sorrend
+    l_board_id   column_def.board_id%TYPE;
+    l_old_pos    column_def.position%TYPE;
+    l_cnt        PLS_INTEGER := 0;
+    l_idx        PLS_INTEGER;
+    l_target_pos PLS_INTEGER;
+    l_placed     BOOLEAN := FALSE;
   BEGIN
-    IF p_new_position < 1
-    THEN
-      err_log_pkg.log_error(p_module_name    => 'COLUMN',
-                            p_procedure_name => 'reorder_column_prc',
-                            p_error_code     => -20160,
-                            p_error_msg      => 'A pozíció nem lehet 1-nél kisebb.',
-                            p_context        => 'column_id=' || p_column_id ||
-                                                '; new_position=' ||
-                                                p_new_position,
-                            p_api            => NULL);
-      RAISE pkg_exceptions.reorder_column_pos_invalid;
+    IF p_new_position < 1 THEN
+      raise_application_error(-20160,
+        'reorder_column_prc: a pozíció nem lehet 1-nél kisebb.');
     END IF;
-  
-    SELECT board_id
-          ,position
-      INTO l_board_id
-          ,l_old_pos
+
+    ------------------------------------------------------------------
+    -- 1. A rendezendő oszlop boardja és aktuális pozíciója
+    ------------------------------------------------------------------
+    SELECT board_id, position
+      INTO l_board_id, l_old_pos
       FROM column_def
      WHERE id = p_column_id;
-  
-    IF p_new_position = l_old_pos
-    THEN
+
+    IF p_new_position = l_old_pos THEN
       RETURN;
     END IF;
-  
-    -- Az adott boardhoz tartozó oszlopok pozícióinak eltolása
-    IF p_new_position < l_old_pos
-    THEN
-      -- Köztes oszlopok pozíciója +1
-      UPDATE column_def
-         SET position = position + 1
-       WHERE board_id = l_board_id
-         AND position >= p_new_position
-         AND position < l_old_pos;
-    ELSE
-      -- Lefelé mozgatjuk: köztes oszlopok pozíciója -1
-      UPDATE column_def
-         SET position = position - 1
-       WHERE board_id = l_board_id
-         AND position <= p_new_position
-         AND position > l_old_pos;
+
+    ------------------------------------------------------------------
+    -- 2. Oszlopok beolvasása az adott boardról, pozíció szerint
+    ------------------------------------------------------------------
+    FOR r IN (SELECT id
+                FROM column_def
+               WHERE board_id = l_board_id
+               ORDER BY position)
+    LOOP
+      l_cnt := l_cnt + 1;
+      l_all_ids(l_cnt) := r.id;
+    END LOOP;
+
+    IF l_cnt = 0 THEN
+      raise_application_error(-20162,
+        'reorder_column_prc: nem találtam oszlopokat a boardon (board_id=' ||
+        l_board_id || ').');
     END IF;
-  
-    -- Kiválasztott oszlop új pozíciója
-    UPDATE column_def SET position = p_new_position WHERE id = p_column_id;
-  
+
+    ------------------------------------------------------------------
+    -- 3. Cél pozíció normalizálása (ha nagyobb, mint elemszám  lista vége)
+    ------------------------------------------------------------------
+    l_target_pos := p_new_position;
+    IF l_target_pos > l_cnt THEN
+      l_target_pos := l_cnt;
+    END IF;
+
+    ------------------------------------------------------------------
+    -- 4. Új sorrend felépítése memóriában
+    ------------------------------------------------------------------
+    l_idx := 1;
+
+    FOR i IN 1 .. l_cnt LOOP
+      -- Mozgatott oszlopot kihagyjuk az eredeti sorrendből
+      IF l_all_ids(i) = p_column_id THEN
+        CONTINUE;
+      END IF;
+
+      -- Ha a célpozícióhoz értünk, előbb a mozgatott oszlop megy
+      IF l_idx = l_target_pos THEN
+        l_new_ids(l_idx) := p_column_id;
+        l_idx    := l_idx + 1;
+        l_placed := TRUE;
+      END IF;
+
+      -- Majd az aktuális oszlop
+      l_new_ids(l_idx) := l_all_ids(i);
+      l_idx := l_idx + 1;
+    END LOOP;
+
+    -- Ha még nem lett berakva (pl. cél pozíció a legvégén volt)
+    IF NOT l_placed THEN
+      l_new_ids(l_idx) := p_column_id;
+      l_idx := l_idx + 1;
+    END IF;
+
+    ------------------------------------------------------------------
+    -- 5. IDEIGLENES ELTOLÁS: minden oszlop position +1000
+    --    (így azonnal megszűnik a 1..N tartományban minden ütközés)
+    ------------------------------------------------------------------
+    UPDATE column_def
+       SET position = position + 1000
+     WHERE board_id = l_board_id;
+
+    ------------------------------------------------------------------
+    -- 6. Végleges 1..N pozíciók visszaírása – itt már nem tud ütközni
+    ------------------------------------------------------------------
+    FOR i IN 1 .. l_idx - 1 LOOP
+      UPDATE column_def
+         SET position = i
+       WHERE id = l_new_ids(i);
+    END LOOP;
+
   EXCEPTION
-    WHEN no_data_found THEN
-      -- Nem létező column_id
-      err_log_pkg.log_error(p_module_name    => 'COLUMN',
-                            p_procedure_name => 'reorder_column_prc',
-                            p_error_code     => -20150,
-                            p_error_msg      => 'A megadott oszlop nem található.',
-                            p_context        => 'column_id=' || p_column_id ||
-                                                '; new_position=' ||
-                                                p_new_position,
-                            p_api            => NULL);
-      RAISE pkg_exceptions.update_column_not_found;
-    
+    WHEN NO_DATA_FOUND THEN
+      raise_application_error(-20163,
+        'reorder_column_prc: a megadott column_id nem található: ' ||
+        p_column_id);
+
     WHEN OTHERS THEN
-      err_log_pkg.log_error(p_module_name    => 'COLUMN',
-                            p_procedure_name => 'reorder_column_prc',
-                            p_error_code     => SQLCODE,
-                            p_error_msg      => SQLERRM,
-                            p_context        => 'column_id=' || p_column_id ||
-                                                '; new_position=' ||
-                                                p_new_position,
-                            p_api            => NULL);
-      RAISE pkg_exceptions.reorder_column_generic;
+      raise_application_error(-20161,
+        'reorder_column_prc hiba (column_id=' || p_column_id ||
+        ', new_position=' || p_new_position || '): ' || SQLERRM);
   END reorder_column_prc;
+
 
 END column_mgmt_pkg;
 /
@@ -2682,8 +2725,6 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     l_old_column_id task.column_id%TYPE;
     l_old_board_id  task.board_id%TYPE;
     l_old_position  task.position%TYPE;
-    l_old_status_id task.status_id%TYPE;
-    l_project_id    task.project_id%TYPE;
   
     l_new_board_id  column_def.board_id%TYPE;
     l_new_status_id column_def.status_id%TYPE;
@@ -2691,11 +2732,6 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   
     l_active_count   NUMBER;
     l_final_position task.position%TYPE;
-    
-    -- Activity Logoláshoz
-    l_old_status_code task_status.code%TYPE;
-    l_new_status_code task_status.code%TYPE;
-    l_activity_id     app_activity.id%TYPE;
   BEGIN
     ------------------------------------------------------------------
     -- 0. Pozíció alap validáció (ha meg van adva)
@@ -2722,13 +2758,9 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     SELECT column_id
           ,board_id
           ,position
-          ,status_id
-          ,project_id
       INTO l_old_column_id
           ,l_old_board_id
           ,l_old_position
-          ,l_old_status_id
-          ,l_project_id
       FROM task
      WHERE id = p_task_id;
   
@@ -2836,39 +2868,26 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     -- 7. Task frissítése: új oszlop, új státusz, új pozíció
     ------------------------------------------------------------------
     UPDATE task
-       SET column_id = p_new_column_id
-          ,status_id = l_new_status_id
-          ,position  = l_final_position
+       SET column_id     = p_new_column_id
+          ,status_id     = l_new_status_id
+          ,position      = l_final_position
+          ,last_modified = SYSDATE
      WHERE id = p_task_id;
   
-    -- p_actor_id: későbbi használat activity loghoz
-  
-    -- Activity Log
-    IF p_actor_id IS NOT NULL
-    THEN
-      BEGIN
-        SELECT code
-          INTO l_old_status_code
-          FROM task_status
-         WHERE id = l_old_status_id;
-      
-        SELECT code
-          INTO l_new_status_code
-          FROM task_status
-         WHERE id = l_new_status_id;
-      
-        activity_log_pkg.log_task_status_change_prc(p_project_id      => l_project_id,
-                                                    p_actor_id        => p_actor_id,
-                                                    p_task_id         => p_task_id,
-                                                    p_old_status_code => l_old_status_code,
-                                                    p_new_status_code => l_new_status_code,
-                                                    p_activity_id     => l_activity_id);
-      END;
-    END IF;
-  
   EXCEPTION
+    ----------------------------------------------------------------
+    -- A már korábban *tudatosan* dobott saját exceptionjeinket
+    -- NEM csomagoljuk újra, csak továbbdobjuk.
+    ----------------------------------------------------------------
+    WHEN pkg_exceptions.move_task_board_mismatch
+         OR pkg_exceptions.move_task_wip_exceeded
+         OR pkg_exceptions.move_task_pos_invalid THEN
+      RAISE;
+    
+    ----------------------------------------------------------------
+    -- Ha maga a task vagy az oszlop hiányzik
+    ----------------------------------------------------------------
     WHEN no_data_found THEN
-      -- Vagy a task, vagy az új oszlop nem található
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'move_task_to_column_prc',
                             p_error_code     => -20213,
@@ -2879,6 +2898,9 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
                             p_api            => NULL);
       RAISE pkg_exceptions.move_task_not_found;
     
+    ----------------------------------------------------------------
+    -- Minden más hiba: általános task-move hiba
+    ----------------------------------------------------------------
     WHEN OTHERS THEN
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'move_task_to_column_prc',
@@ -2894,22 +2916,35 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   --------------------------------------------------------------------
   -- TASK SORRENDEZÉS OSZLOPON BELÜL
   --------------------------------------------------------------------
+  --------------------------------------------------------------------
+  -- TASK sorrendezés oszlopon belül, egyedi (column_id, position)
+  -- constraint biztonságos kezelése mellett.
+  --
+  -- Lépések:
+  --  1) Beolvassuk az adott oszlop összes taskját pozíció szerint.
+  --  2) Memóriában felépítjük az új sorrendet, ahova a p_task_id
+  --     a p_new_position helyre kerül.
+  --  3) Az oszlop összes taskjának position értékét ideiglenesen
+  --     +1000-rel eltoljuk (így nem sérül az egyedi index).
+  --  4) Az új sorrendnek megfelelően 1..N-re újraszámozzuk a position-t.
+  --------------------------------------------------------------------
   PROCEDURE reorder_task_in_column_prc(p_task_id      IN task.id%TYPE
                                       ,p_new_position IN task.position%TYPE) IS
-    l_column_id task.column_id%TYPE;
-    l_old_pos   task.position%TYPE;
+    TYPE t_id_tab IS TABLE OF task.id%TYPE INDEX BY PLS_INTEGER;
+  
+    l_all_ids    t_id_tab; -- jelenlegi sorrend
+    l_new_ids    t_id_tab; -- új sorrend
+    l_column_id  task.column_id%TYPE;
+    l_old_pos    task.position%TYPE;
+    l_cnt        PLS_INTEGER := 0;
+    l_idx        PLS_INTEGER;
+    l_target_pos PLS_INTEGER;
+    l_placed     BOOLEAN := FALSE;
   BEGIN
     IF p_new_position < 1
     THEN
-      err_log_pkg.log_error(p_module_name    => 'TASK',
-                            p_procedure_name => 'reorder_task_in_column_prc',
-                            p_error_code     => -20220,
-                            p_error_msg      => 'A pozíció nem lehet 1-nél kisebb.',
-                            p_context        => 'task_id=' || p_task_id ||
-                                                '; new_position=' ||
-                                                p_new_position,
-                            p_api            => NULL);
-      RAISE pkg_exceptions.reorder_task_pos_invalid;
+      raise_application_error(-20220,
+                              'reorder_task_in_column_prc: a pozíció nem lehet 1-nél kisebb.');
     END IF;
   
     ------------------------------------------------------------------
@@ -2928,52 +2963,93 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- 2. Az adott oszlop többi taskjának pozíció-korrekciója
+    -- 2. Az adott oszlop taskjainak beolvasása, jelenlegi sorrend
     ------------------------------------------------------------------
-    IF p_new_position < l_old_pos
+    FOR r IN (SELECT id
+                FROM task
+               WHERE column_id = l_column_id
+               ORDER BY position)
+    LOOP
+      l_cnt := l_cnt + 1;
+      l_all_ids(l_cnt) := r.id;
+    END LOOP;
+  
+    IF l_cnt = 0
     THEN
-      -- Felfelé mozgatjuk: a köztes taskok lejjebb csúsznak (pos+1)
-      UPDATE task
-         SET position = position + 1
-       WHERE column_id = l_column_id
-         AND position >= p_new_position
-         AND position < l_old_pos;
-    ELSE
-      -- Lefelé mozgatjuk: a köztes taskok feljebb csúsznak (pos-1)
-      UPDATE task
-         SET position = position - 1
-       WHERE column_id = l_column_id
-         AND position <= p_new_position
-         AND position > l_old_pos;
+      raise_application_error(-20221,
+                              'reorder_task_in_column_prc: üres oszlop (column_id=' ||
+                              l_column_id || ').');
     END IF;
   
     ------------------------------------------------------------------
-    -- 3. Kijelölt task új pozíciója
+    -- 3. Célpozíció normalizálása
     ------------------------------------------------------------------
-    UPDATE task SET position = p_new_position WHERE id = p_task_id;
+    l_target_pos := p_new_position;
+    IF l_target_pos > l_cnt
+    THEN
+      l_target_pos := l_cnt;
+    END IF;
+  
+    ------------------------------------------------------------------
+    -- 4. Új sorrend felépítése memóriában
+    ------------------------------------------------------------------
+    l_idx := 1;
+  
+    FOR i IN 1 .. l_cnt
+    LOOP
+      -- A mozgatott taskot kihagyjuk az eredeti sorrendből
+      IF l_all_ids(i) = p_task_id
+      THEN
+        CONTINUE;
+      END IF;
+    
+      -- Ha elértük a célpozíciót, előbb a mozgatott task kerül be
+      IF l_idx = l_target_pos
+      THEN
+        l_new_ids(l_idx) := p_task_id;
+        l_idx := l_idx + 1;
+        l_placed := TRUE;
+      END IF;
+    
+      -- Majd az aktuális task
+      l_new_ids(l_idx) := l_all_ids(i);
+      l_idx := l_idx + 1;
+    END LOOP;
+  
+    -- Ha még nem lett berakva (pl. célpozíció a legvégén volt)
+    IF NOT l_placed
+    THEN
+      l_new_ids(l_idx) := p_task_id;
+      l_idx := l_idx + 1;
+    END IF;
+  
+    ------------------------------------------------------------------
+    -- 5. Ideiglenes eltolás: minden task position +1000
+    ------------------------------------------------------------------
+    UPDATE task
+       SET position = position + 1000
+     WHERE column_id = l_column_id;
+  
+    ------------------------------------------------------------------
+    -- 6. Végleges 1..N pozíciók visszaírása az új sorrend alapján
+    ------------------------------------------------------------------
+    FOR i IN 1 .. l_idx - 1
+    LOOP
+      UPDATE task
+         SET position      = i
+            ,last_modified = SYSDATE -- itt használjuk a LAST_MODIFIED-et
+       WHERE id = l_new_ids(i);
+    END LOOP;
   
   EXCEPTION
     WHEN no_data_found THEN
-      err_log_pkg.log_error(p_module_name    => 'TASK',
-                            p_procedure_name => 'reorder_task_in_column_prc',
-                            p_error_code     => -20221,
-                            p_error_msg      => 'A megadott task nem található.',
-                            p_context        => 'task_id=' || p_task_id ||
-                                                '; new_position=' ||
-                                                p_new_position,
-                            p_api            => NULL);
-      RAISE pkg_exceptions.reorder_task_not_found;
-    
+      raise_application_error(-20221,
+                              'reorder_task_in_column_prc: a megadott task nem található.');
     WHEN OTHERS THEN
-      err_log_pkg.log_error(p_module_name    => 'TASK',
-                            p_procedure_name => 'reorder_task_in_column_prc',
-                            p_error_code     => SQLCODE,
-                            p_error_msg      => SQLERRM,
-                            p_context        => 'task_id=' || p_task_id ||
-                                                '; new_position=' ||
-                                                p_new_position,
-                            p_api            => NULL);
-      RAISE pkg_exceptions.reorder_task_generic;
+      raise_application_error(-20222,
+                              'reorder_task_in_column_prc hiba (task_id=' ||
+                              p_task_id || ', new_position=' ||
+                              p_new_position || '): ' || SQLERRM);
   END reorder_task_in_column_prc;
 
 END task_mgmt_pkg;
@@ -3702,33 +3778,54 @@ END git_integration_pkg;
 /
 
 CREATE OR REPLACE PACKAGE task_autofill_pkg IS
-  -- Re-entrancia védelem: ha már épp mozgatunk, ne induljunk újra
-  g_autofill_running BOOLEAN := FALSE;
-
   -- Egyetlen backlog task behúzása To Do-ba (ha van hely)
   PROCEDURE fill_todo_from_backlog;
 END task_autofill_pkg;
 /
 
+CREATE OR REPLACE TRIGGER task_autofill_trg
+  AFTER INSERT OR UPDATE OF column_id, closed_at ON task
+DECLARE
+BEGIN
+  -- Megpróbálunk egy feladatot áthúzni Backlog - TODO
+  task_autofill_pkg.fill_todo_from_backlog;
+
+EXCEPTION
+  --------------------------------------------------------------------
+  -- Az ismert, domain-szintű hibákat NEM dobjuk tovább,
+  -- mert az eredeti INSERT/UPDATE ettől még lehet sikeres.
+  -- A részleteket már a task_autofill_pkg + err_log_pkg logolja.
+  --------------------------------------------------------------------
+  WHEN pkg_exceptions.move_task_board_mismatch
+       OR pkg_exceptions.move_task_wip_exceeded
+       OR pkg_exceptions.move_task_not_found
+       OR pkg_exceptions.move_task_generic THEN
+    NULL;
+  WHEN OTHERS THEN
+    RAISE;
+END task_autofill_trg;
+/
+
 CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
+  g_autofill_running BOOLEAN := FALSE;
 
   PROCEDURE fill_todo_from_backlog IS
     -- TODO / BACKLOG oszlopok
-    l_todo_column_id     column_def.id%TYPE;
-    l_backlog_column_id  column_def.id%TYPE;
-    l_wip_limit          column_def.wip_limit%TYPE;
-
-    l_active_todo_count  NUMBER;
-    l_task_to_move       task.id%TYPE;
-    l_actor_id           task.created_by%TYPE;
+    l_todo_column_id    column_def.id%TYPE;
+    l_backlog_column_id column_def.id%TYPE;
+    l_wip_limit         column_def.wip_limit%TYPE;
+  
+    l_task_to_move task.id%TYPE;
+    l_actor_id     task.created_by%TYPE;
   BEGIN
     -- Ha már futunk (másik trigger hívásból), ne induljunk újra
-    IF g_autofill_running THEN
+    IF g_autofill_running
+    THEN
       RETURN;
     END IF;
-
+  
     g_autofill_running := TRUE;
-
+  
     ----------------------------------------------------------------
     -- 1. Keresünk EGY olyan boardot, ahol:
     --    - van TODO oszlop wip_limit-tel,
@@ -3736,117 +3833,127 @@ CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
     --    - és van BACKLOG oszlop, amiben van aktív task.
     ----------------------------------------------------------------
     BEGIN
-      SELECT c_todo.id,
-             c_backlog.id,
-             c_todo.wip_limit
-        INTO l_todo_column_id,
-             l_backlog_column_id,
-             l_wip_limit
-        FROM column_def   c_todo
-        JOIN task_status  s_todo
+      SELECT c_todo.id
+            ,c_backlog.id
+            ,c_todo.wip_limit
+        INTO l_todo_column_id
+            ,l_backlog_column_id
+            ,l_wip_limit
+        FROM column_def c_todo
+        JOIN task_status s_todo
           ON s_todo.id = c_todo.status_id
          AND s_todo.code = 'TODO'
-        JOIN column_def   c_backlog
+        JOIN column_def c_backlog
           ON c_backlog.board_id = c_todo.board_id
-        JOIN task_status  s_backlog
+        JOIN task_status s_backlog
           ON s_backlog.id = c_backlog.status_id
          AND s_backlog.code = 'BACKLOG'
        WHERE c_todo.wip_limit IS NOT NULL
          AND c_todo.wip_limit > 0
-         AND EXISTS (
-               SELECT 1
-                 FROM task t_b
-                WHERE t_b.column_id = c_backlog.id
-                  AND t_b.closed_at IS NULL
-             )
-         AND (
-               SELECT COUNT(*)
-                 FROM task t_t
-                WHERE t_t.column_id = c_todo.id
-                  AND t_t.closed_at IS NULL
-             ) < c_todo.wip_limit
-         AND ROWNUM = 1;  -- csak EGY board/oszloppár
+         AND EXISTS (SELECT 1
+                FROM task t_b
+               WHERE t_b.column_id = c_backlog.id
+                 AND t_b.closed_at IS NULL)
+         AND (SELECT COUNT(*)
+                FROM task t_t
+               WHERE t_t.column_id = c_todo.id
+                 AND t_t.closed_at IS NULL) < c_todo.wip_limit
+         AND rownum = 1; -- csak EGY board/oszloppár
     EXCEPTION
-      WHEN NO_DATA_FOUND THEN
+      WHEN no_data_found THEN
         -- Nincs olyan board/oszlop, amit tölteni kellene → NEM hiba, simán kilépünk
         g_autofill_running := FALSE;
         RETURN;
     END;
-
+  
     ----------------------------------------------------------------
-    -- 2. Válasszunk EGY taskot a backlogból (pozíció / created_at szerint)
+    -- 2. Válasszunk EGY taskot a backlogból
+    --    (pozíció + last_modified szerint)
     ----------------------------------------------------------------
     BEGIN
-      SELECT id, created_by
-        INTO l_task_to_move,
-             l_actor_id
-        FROM (
-               SELECT id, created_by
-                 FROM task
-                WHERE column_id = l_backlog_column_id
-                  AND closed_at IS NULL
-                ORDER BY position
-             )
-       WHERE ROWNUM = 1;
+      SELECT id
+            ,created_by
+        INTO l_task_to_move
+            ,l_actor_id
+        FROM (SELECT id
+                    ,created_by
+                FROM task
+               WHERE column_id = l_backlog_column_id
+                 AND closed_at IS NULL
+               ORDER BY position
+                       ,last_modified -- <-- Itt javítottuk
+              )
+       WHERE rownum = 1;
     EXCEPTION
-      WHEN NO_DATA_FOUND THEN
+      WHEN no_data_found THEN
         -- Közben esetleg eltűnt a backlog task → ez sem igazi hiba
         g_autofill_running := FALSE;
         RETURN;
     END;
-
+  
     ----------------------------------------------------------------
     -- 3. Task áthelyezése backlogból To Do-ba
-    --    (az általunk már létrehozott task_mgmt_pkg PRC-vel)
     ----------------------------------------------------------------
-    task_mgmt_pkg.move_task_to_column_prc(
-      p_task_id       => l_task_to_move,
-      p_new_column_id => l_todo_column_id,
-      p_actor_id      => l_actor_id,
-      p_new_position  => NULL       -- To Do oszlop vége
-    );
-
+    task_mgmt_pkg.move_task_to_column_prc(p_task_id       => l_task_to_move,
+                                          p_new_column_id => l_todo_column_id,
+                                          p_actor_id      => l_actor_id,
+                                          p_new_position  => NULL -- To Do oszlop vége
+                                          );
+  
     g_autofill_running := FALSE;
-
+  
   EXCEPTION
     WHEN pkg_exceptions.move_task_board_mismatch
-       OR pkg_exceptions.move_task_wip_exceeded
-       OR pkg_exceptions.move_task_not_found
-    THEN
+         OR pkg_exceptions.move_task_wip_exceeded
+         OR pkg_exceptions.move_task_not_found THEN
       g_autofill_running := FALSE;
-
-      err_log_pkg.log_error(
-        p_module_name    => 'TASK_AUTOFILL',
-        p_procedure_name => 'fill_todo_from_backlog',
-        p_error_code     => SQLCODE,
-        p_error_msg      => SQLERRM,
-        p_context        => 'task_id='      || NVL(TO_CHAR(l_task_to_move), 'NULL')
-                         || '; todo_col='   || NVL(TO_CHAR(l_todo_column_id), 'NULL')
-                         || '; backlog_col='|| NVL(TO_CHAR(l_backlog_column_id), 'NULL'),
-        p_api            => NULL
-      );
-
-      -- Ugyanazzal a hibakóddal visszadobjuk
-      RAISE;
-
+    
+      err_log_pkg.log_error(p_module_name    => 'TASK_AUTOFILL',
+                            p_procedure_name => 'fill_todo_from_backlog',
+                            p_error_code     => SQLCODE,
+                            p_error_msg      => SQLERRM,
+                            p_context        => 'task_id=' ||
+                                                nvl(to_char(l_task_to_move),
+                                                    'NULL') || '; todo_col=' ||
+                                                nvl(to_char(l_todo_column_id),
+                                                    'NULL') ||
+                                                '; backlog_col=' ||
+                                                nvl(to_char(l_backlog_column_id),
+                                                    'NULL'),
+                            p_api            => NULL);
+    
+      RAISE; -- ugyanazt továbbdobjuk
+  
     WHEN OTHERS THEN
       g_autofill_running := FALSE;
-
-      err_log_pkg.log_error(
-        p_module_name    => 'TASK_AUTOFILL',
-        p_procedure_name => 'fill_todo_from_backlog',
-        p_error_code     => SQLCODE,
-        p_error_msg      => SQLERRM,
-        p_context        => 'task_id='      || NVL(TO_CHAR(l_task_to_move), 'NULL')
-                         || '; todo_col='   || NVL(TO_CHAR(l_todo_column_id), 'NULL')
-                         || '; backlog_col='|| NVL(TO_CHAR(l_backlog_column_id), 'NULL'),
-        p_api            => NULL
-      );
+    
+      err_log_pkg.log_error(p_module_name    => 'TASK_AUTOFILL',
+                            p_procedure_name => 'fill_todo_from_backlog',
+                            p_error_code     => SQLCODE,
+                            p_error_msg      => SQLERRM,
+                            p_context        => 'task_id=' ||
+                                                nvl(to_char(l_task_to_move),
+                                                    'NULL') || '; todo_col=' ||
+                                                nvl(to_char(l_todo_column_id),
+                                                    'NULL') ||
+                                                '; backlog_col=' ||
+                                                nvl(to_char(l_backlog_column_id),
+                                                    'NULL'),
+                            p_api            => NULL);
       RAISE pkg_exceptions.move_task_generic;
   END fill_todo_from_backlog;
 
 END task_autofill_pkg;
 /
+
+CREATE OR REPLACE TRIGGER task_autofill_on_change_trg
+  AFTER INSERT OR UPDATE OR DELETE ON task
+DECLARE
+BEGIN
+  task_autofill_pkg.fill_todo_from_backlog;
+END;
+/
+
 
 CREATE OR REPLACE PACKAGE board_overview_pkg IS
 

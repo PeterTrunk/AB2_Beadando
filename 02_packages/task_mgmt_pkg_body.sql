@@ -1,7 +1,7 @@
-CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
+ÔªøCREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
 
   --------------------------------------------------------------------
-  -- TASK L…TREHOZ¡S
+  -- TASK L√âTREHOZ√ÅS
   --------------------------------------------------------------------
   PROCEDURE create_task_prc(p_project_id    IN task.project_id%TYPE
                            ,p_board_id      IN task.board_id%TYPE
@@ -19,12 +19,12 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     l_position task.position%TYPE;
   BEGIN
     ------------------------------------------------------------------
-    -- 1. Task key gener·l·sa projekt alapj·n (PMA-0001, DEVOPS-0001Ö)
+    -- 1. Task key gener√°l√°sa projekt alapj√°n (PMA-0001, DEVOPS-0001‚Ä¶)
     ------------------------------------------------------------------
     l_task_key := build_next_task_key_fnc(p_project_id);
   
     ------------------------------------------------------------------
-    -- 2. POSITION meghat·roz·sa az oszlopon bel¸l
+    -- 2. POSITION meghat√°roz√°sa az oszlopon bel√ºl
     ------------------------------------------------------------------
     SELECT nvl(MAX(position), 0) + 1
       INTO l_position
@@ -32,7 +32,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
      WHERE column_id = p_column_id;
   
     ------------------------------------------------------------------
-    -- 3. Task besz˙r·sa
+    -- 3. Task besz√∫r√°sa
     ------------------------------------------------------------------
     INSERT INTO task
       (project_id
@@ -73,18 +73,18 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
                                         p_entity_type => 'TASK',
                                         p_entity_id   => p_task_id,
                                         p_action      => 'TASK_CREATE',
-                                        p_payload     => 'Task lÈtrehozva: ' ||
+                                        p_payload     => 'Task l√©trehozva: ' ||
                                                          p_title,
                                         p_activity_id => l_activity_id);
     END;
   
   EXCEPTION
     WHEN dup_val_on_index THEN
-      -- tipikusan TASK_KEY egyedi constraint sÈr¸l
+      -- tipikusan TASK_KEY egyedi constraint s√©r√ºl
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'create_task_prc',
                             p_error_code     => -20100,
-                            p_error_msg      => '‹tkˆzÈs az egyedi constrainten (valÛszÌn˚leg TASK_KEY).',
+                            p_error_msg      => '√útk√∂z√©s az egyedi constrainten (val√≥sz√≠n≈±leg TASK_KEY).',
                             p_context        => 'project_id=' ||
                                                 p_project_id ||
                                                 '; column_id=' ||
@@ -109,7 +109,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   END create_task_prc;
 
   --------------------------------------------------------------------
-  -- TASKñUSER HOZZ¡RENDEL…S
+  -- TASK‚ÄìUSER HOZZ√ÅRENDEL√âS
   --------------------------------------------------------------------
   PROCEDURE assign_user_to_task_prc(p_task_id IN task_assignment.task_id%TYPE
                                    ,p_user_id IN task_assignment.user_id%TYPE) IS
@@ -128,7 +128,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'assign_user_to_task_prc',
                             p_error_code     => -20110,
-                            p_error_msg      => 'A user m·r hozz· van rendelve ehhez a taskhoz.',
+                            p_error_msg      => 'A user m√°r hozz√° van rendelve ehhez a taskhoz.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; user_id=' || p_user_id,
                             p_api            => NULL);
@@ -146,7 +146,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   END assign_user_to_task_prc;
 
   --------------------------------------------------------------------
-  -- TASK MOZGAT¡S / SORRENDEZ…S
+  -- TASK MOZGAT√ÅS / SORRENDEZ√âS
   --------------------------------------------------------------------
   PROCEDURE move_task_to_column_prc(p_task_id       IN task.id%TYPE
                                    ,p_new_column_id IN task.column_id%TYPE
@@ -155,8 +155,6 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     l_old_column_id task.column_id%TYPE;
     l_old_board_id  task.board_id%TYPE;
     l_old_position  task.position%TYPE;
-    l_old_status_id task.status_id%TYPE;
-    l_project_id    task.project_id%TYPE;
   
     l_new_board_id  column_def.board_id%TYPE;
     l_new_status_id column_def.status_id%TYPE;
@@ -164,14 +162,9 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   
     l_active_count   NUMBER;
     l_final_position task.position%TYPE;
-    
-    -- Activity Logol·shoz
-    l_old_status_code task_status.code%TYPE;
-    l_new_status_code task_status.code%TYPE;
-    l_activity_id     app_activity.id%TYPE;
   BEGIN
     ------------------------------------------------------------------
-    -- 0. PozÌciÛ alap valid·ciÛ (ha meg van adva)
+    -- 0. Poz√≠ci√≥ alap valid√°ci√≥ (ha meg van adva)
     ------------------------------------------------------------------
     IF p_new_position IS NOT NULL
        AND p_new_position < 1
@@ -179,7 +172,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'move_task_to_column_prc',
                             p_error_code     => -20212,
-                            p_error_msg      => '⁄j pozÌciÛ nem lehet 1-nÈl kisebb.',
+                            p_error_msg      => '√öj poz√≠ci√≥ nem lehet 1-n√©l kisebb.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; new_column_id=' ||
                                                 p_new_column_id ||
@@ -195,21 +188,16 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     SELECT column_id
           ,board_id
           ,position
-          ,status_id
-          ,project_id
       INTO l_old_column_id
           ,l_old_board_id
           ,l_old_position
-          ,l_old_status_id
-          ,l_project_id
       FROM task
      WHERE id = p_task_id;
   
     ------------------------------------------------------------------
-    -- 2. Ha ugyanabba az oszlopba mozgatjuk, az csak sorrendezÈs
+    -- 2. Ha ugyanabba az oszlopba mozgatjuk, az csak sorrendez√©s
     ------------------------------------------------------------------
-    IF p_new_column_id = l_old_column_id
-    THEN
+    IF p_new_column_id = l_old_column_id THEN
       IF p_new_position IS NOT NULL
          AND p_new_position <> l_old_position
       THEN
@@ -220,7 +208,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- 3. ⁄j oszlop adatai (board, st·tusz, WIP limit)
+    -- 3. √öj oszlop adatai (board, st√°tusz, WIP limit)
     ------------------------------------------------------------------
     SELECT board_id
           ,status_id
@@ -231,13 +219,12 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
       FROM column_def
      WHERE id = p_new_column_id;
   
-    -- Nem engedj¸k m·sik boardra mozgatni a taskot
-    IF l_new_board_id <> l_old_board_id
-    THEN
+    -- Nem engedj√ºk m√°sik boardra mozgatni a taskot
+    IF l_new_board_id <> l_old_board_id THEN
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'move_task_to_column_prc',
                             p_error_code     => -20210,
-                            p_error_msg      => 'Task csak ugyanazon a boardon bel¸l mozgathatÛ.',
+                            p_error_msg      => 'Task csak ugyanazon a boardon bel√ºl mozgathat√≥.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; old_board_id=' ||
                                                 l_old_board_id ||
@@ -248,7 +235,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- 4. WIP limit ellenırzÈs az ˙j oszlopban
+    -- 4. WIP limit ellen≈ërz√©s az √∫j oszlopban
     ------------------------------------------------------------------
     IF l_wip_limit IS NOT NULL
        AND l_wip_limit > 0
@@ -259,12 +246,11 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
        WHERE column_id = p_new_column_id
          AND closed_at IS NULL;
     
-      IF l_active_count >= l_wip_limit
-      THEN
+      IF l_active_count >= l_wip_limit THEN
         err_log_pkg.log_error(p_module_name    => 'TASK',
                               p_procedure_name => 'move_task_to_column_prc',
                               p_error_code     => -20211,
-                              p_error_msg      => 'WIP limit elÈrve az ˙j oszlopban.',
+                              p_error_msg      => 'WIP limit el√©rve az √∫j oszlopban.',
                               p_context        => 'task_id=' || p_task_id ||
                                                   '; new_column_id=' ||
                                                   p_new_column_id ||
@@ -278,74 +264,55 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- 5. RÈgi oszlop pozÌciÛinak "ˆsszeh˙z·sa"
+    -- 5. A mozgatott task "f√©lreparkol√°sa" az √ºtk√∂z√©sek elker√ºl√©s√©re
+    ------------------------------------------------------------------
+    UPDATE task
+       SET position = 0        -- csak ideiglenes √©rt√©k
+     WHERE id = p_task_id;
+  
+    ------------------------------------------------------------------
+    -- 6. R√©gi oszlop poz√≠ci√≥inak "√∂sszeh√∫z√°sa"
     ------------------------------------------------------------------
     UPDATE task
        SET position = position - 1
      WHERE column_id = l_old_column_id
-       AND position > l_old_position;
+       AND position   > l_old_position;
   
     ------------------------------------------------------------------
-    -- 6. ⁄j oszlopban vÈgsı pozÌciÛ meghat·roz·sa
+    -- 7. √öj oszlopban v√©gs≈ë poz√≠ci√≥ meghat√°roz√°sa
     ------------------------------------------------------------------
-    IF p_new_position IS NULL
-    THEN
-      -- Ha nincs megadva ˙j pozÌciÛ, az oszlop vÈgÈre ker¸l
-      SELECT nvl(MAX(position), 0) + 1
+    IF p_new_position IS NULL THEN
+      -- Ha nincs megadva √∫j poz√≠ci√≥, az oszlop v√©g√©re ker√ºl
+      SELECT NVL(MAX(position), 0) + 1
         INTO l_final_position
         FROM task
        WHERE column_id = p_new_column_id;
     ELSE
-      -- Hely felszabadÌt·sa az ˙j oszlopban a megadott pozÌciÛra
+      -- Hely felszabad√≠t√°sa az √∫j oszlopban a megadott poz√≠ci√≥ra
       UPDATE task
          SET position = position + 1
        WHERE column_id = p_new_column_id
-         AND position >= p_new_position;
+         AND position  >= p_new_position;
     
       l_final_position := p_new_position;
     END IF;
   
     ------------------------------------------------------------------
-    -- 7. Task frissÌtÈse: ˙j oszlop, ˙j st·tusz, ˙j pozÌciÛ
+    -- 8. Task friss√≠t√©se: √∫j oszlop, √∫j st√°tusz, √∫j poz√≠ci√≥
     ------------------------------------------------------------------
     UPDATE task
-       SET column_id = p_new_column_id
-          ,status_id = l_new_status_id
-          ,position  = l_final_position
+       SET column_id  = p_new_column_id
+          ,status_id  = l_new_status_id
+          ,position   = l_final_position
+          ,updated_at = SYSDATE
      WHERE id = p_task_id;
-  
-    -- p_actor_id: kÈsıbbi haszn·lat activity loghoz
-  
-    -- Activity Log
-    IF p_actor_id IS NOT NULL
-    THEN
-      BEGIN
-        SELECT code
-          INTO l_old_status_code
-          FROM task_status
-         WHERE id = l_old_status_id;
-      
-        SELECT code
-          INTO l_new_status_code
-          FROM task_status
-         WHERE id = l_new_status_id;
-      
-        activity_log_pkg.log_task_status_change_prc(p_project_id      => l_project_id,
-                                                    p_actor_id        => p_actor_id,
-                                                    p_task_id         => p_task_id,
-                                                    p_old_status_code => l_old_status_code,
-                                                    p_new_status_code => l_new_status_code,
-                                                    p_activity_id     => l_activity_id);
-      END;
-    END IF;
   
   EXCEPTION
     WHEN no_data_found THEN
-      -- Vagy a task, vagy az ˙j oszlop nem tal·lhatÛ
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'move_task_to_column_prc',
                             p_error_code     => -20213,
-                            p_error_msg      => 'Task vagy oszlop nem tal·lhatÛ.',
+                            p_error_msg      => 'Task vagy oszlop nem tal√°lhat√≥.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; new_column_id=' ||
                                                 p_new_column_id,
@@ -365,28 +332,41 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   END move_task_to_column_prc;
 
   --------------------------------------------------------------------
-  -- TASK SORRENDEZ…S OSZLOPON BEL‹L
+  -- TASK SORRENDEZ√âS OSZLOPON BEL√úL
+  --------------------------------------------------------------------
+  --------------------------------------------------------------------
+  -- TASK sorrendez√©s oszlopon bel√ºl, egyedi (column_id, position)
+  -- constraint biztons√°gos kezel√©se mellett.
+  --
+  -- L√©p√©sek:
+  --  1) Beolvassuk az adott oszlop √∂sszes taskj√°t poz√≠ci√≥ szerint.
+  --  2) Mem√≥ri√°ban fel√©p√≠tj√ºk az √∫j sorrendet, ahova a p_task_id
+  --     a p_new_position helyre ker√ºl.
+  --  3) Az oszlop √∂sszes taskj√°nak position √©rt√©k√©t ideiglenesen
+  --     +1000-rel eltoljuk (√≠gy nem s√©r√ºl az egyedi index).
+  --  4) Az √∫j sorrendnek megfelel≈ëen 1..N-re √∫jrasz√°mozzuk a position-t.
   --------------------------------------------------------------------
   PROCEDURE reorder_task_in_column_prc(p_task_id      IN task.id%TYPE
                                       ,p_new_position IN task.position%TYPE) IS
-    l_column_id task.column_id%TYPE;
-    l_old_pos   task.position%TYPE;
+    TYPE t_id_tab IS TABLE OF task.id%TYPE INDEX BY PLS_INTEGER;
+  
+    l_all_ids    t_id_tab; -- jelenlegi sorrend
+    l_new_ids    t_id_tab; -- √∫j sorrend
+    l_column_id  task.column_id%TYPE;
+    l_old_pos    task.position%TYPE;
+    l_cnt        PLS_INTEGER := 0;
+    l_idx        PLS_INTEGER;
+    l_target_pos PLS_INTEGER;
+    l_placed     BOOLEAN := FALSE;
   BEGIN
     IF p_new_position < 1
     THEN
-      err_log_pkg.log_error(p_module_name    => 'TASK',
-                            p_procedure_name => 'reorder_task_in_column_prc',
-                            p_error_code     => -20220,
-                            p_error_msg      => 'A pozÌciÛ nem lehet 1-nÈl kisebb.',
-                            p_context        => 'task_id=' || p_task_id ||
-                                                '; new_position=' ||
-                                                p_new_position,
-                            p_api            => NULL);
-      RAISE pkg_exceptions.reorder_task_pos_invalid;
+      raise_application_error(-20220,
+                              'reorder_task_in_column_prc: a poz√≠ci√≥ nem lehet 1-n√©l kisebb.');
     END IF;
   
     ------------------------------------------------------------------
-    -- 1. Task jelenlegi oszlopa Ès pozÌciÛja
+    -- 1. Task jelenlegi oszlopa √©s poz√≠ci√≥ja
     ------------------------------------------------------------------
     SELECT column_id
           ,position
@@ -397,56 +377,97 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   
     IF p_new_position = l_old_pos
     THEN
-      RETURN; -- nincs v·ltoz·s
+      RETURN; -- nincs v√°ltoz√°s
     END IF;
   
     ------------------------------------------------------------------
-    -- 2. Az adott oszlop tˆbbi taskj·nak pozÌciÛ-korrekciÛja
+    -- 2. Az adott oszlop taskjainak beolvas√°sa, jelenlegi sorrend
     ------------------------------------------------------------------
-    IF p_new_position < l_old_pos
+    FOR r IN (SELECT id
+                FROM task
+               WHERE column_id = l_column_id
+               ORDER BY position)
+    LOOP
+      l_cnt := l_cnt + 1;
+      l_all_ids(l_cnt) := r.id;
+    END LOOP;
+  
+    IF l_cnt = 0
     THEN
-      -- FelfelÈ mozgatjuk: a kˆztes taskok lejjebb cs˙sznak (pos+1)
-      UPDATE task
-         SET position = position + 1
-       WHERE column_id = l_column_id
-         AND position >= p_new_position
-         AND position < l_old_pos;
-    ELSE
-      -- LefelÈ mozgatjuk: a kˆztes taskok feljebb cs˙sznak (pos-1)
-      UPDATE task
-         SET position = position - 1
-       WHERE column_id = l_column_id
-         AND position <= p_new_position
-         AND position > l_old_pos;
+      raise_application_error(-20221,
+                              'reorder_task_in_column_prc: √ºres oszlop (column_id=' ||
+                              l_column_id || ').');
     END IF;
   
     ------------------------------------------------------------------
-    -- 3. Kijelˆlt task ˙j pozÌciÛja
+    -- 3. C√©lpoz√≠ci√≥ normaliz√°l√°sa
     ------------------------------------------------------------------
-    UPDATE task SET position = p_new_position WHERE id = p_task_id;
+    l_target_pos := p_new_position;
+    IF l_target_pos > l_cnt
+    THEN
+      l_target_pos := l_cnt;
+    END IF;
+  
+    ------------------------------------------------------------------
+    -- 4. √öj sorrend fel√©p√≠t√©se mem√≥ri√°ban
+    ------------------------------------------------------------------
+    l_idx := 1;
+  
+    FOR i IN 1 .. l_cnt
+    LOOP
+      -- A mozgatott taskot kihagyjuk az eredeti sorrendb≈ël
+      IF l_all_ids(i) = p_task_id
+      THEN
+        CONTINUE;
+      END IF;
+    
+      -- Ha el√©rt√ºk a c√©lpoz√≠ci√≥t, el≈ëbb a mozgatott task ker√ºl be
+      IF l_idx = l_target_pos
+      THEN
+        l_new_ids(l_idx) := p_task_id;
+        l_idx := l_idx + 1;
+        l_placed := TRUE;
+      END IF;
+    
+      -- Majd az aktu√°lis task
+      l_new_ids(l_idx) := l_all_ids(i);
+      l_idx := l_idx + 1;
+    END LOOP;
+  
+    -- Ha m√©g nem lett berakva (pl. c√©lpoz√≠ci√≥ a legv√©g√©n volt)
+    IF NOT l_placed
+    THEN
+      l_new_ids(l_idx) := p_task_id;
+      l_idx := l_idx + 1;
+    END IF;
+  
+    ------------------------------------------------------------------
+    -- 5. Ideiglenes eltol√°s: minden task position +1000
+    ------------------------------------------------------------------
+    UPDATE task
+       SET position = position + 1000
+     WHERE column_id = l_column_id;
+  
+    ------------------------------------------------------------------
+    -- 6. V√©gleges 1..N poz√≠ci√≥k vissza√≠r√°sa az √∫j sorrend alapj√°n
+    ------------------------------------------------------------------
+    FOR i IN 1 .. l_idx - 1
+    LOOP
+      UPDATE task
+         SET position      = i
+            ,last_modified = SYSDATE -- itt haszn√°ljuk a LAST_MODIFIED-et
+       WHERE id = l_new_ids(i);
+    END LOOP;
   
   EXCEPTION
     WHEN no_data_found THEN
-      err_log_pkg.log_error(p_module_name    => 'TASK',
-                            p_procedure_name => 'reorder_task_in_column_prc',
-                            p_error_code     => -20221,
-                            p_error_msg      => 'A megadott task nem tal·lhatÛ.',
-                            p_context        => 'task_id=' || p_task_id ||
-                                                '; new_position=' ||
-                                                p_new_position,
-                            p_api            => NULL);
-      RAISE pkg_exceptions.reorder_task_not_found;
-    
+      raise_application_error(-20221,
+                              'reorder_task_in_column_prc: a megadott task nem tal√°lhat√≥.');
     WHEN OTHERS THEN
-      err_log_pkg.log_error(p_module_name    => 'TASK',
-                            p_procedure_name => 'reorder_task_in_column_prc',
-                            p_error_code     => SQLCODE,
-                            p_error_msg      => SQLERRM,
-                            p_context        => 'task_id=' || p_task_id ||
-                                                '; new_position=' ||
-                                                p_new_position,
-                            p_api            => NULL);
-      RAISE pkg_exceptions.reorder_task_generic;
+      raise_application_error(-20222,
+                              'reorder_task_in_column_prc hiba (task_id=' ||
+                              p_task_id || ', new_position=' ||
+                              p_new_position || '): ' || SQLERRM);
   END reorder_task_in_column_prc;
 
 END task_mgmt_pkg;

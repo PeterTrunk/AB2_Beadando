@@ -24,7 +24,7 @@
   
     ------------------------------------------------------------------
     -- Pozíció meghatározása
-    -- Ha p_position NULL vagy < 1 → a projekt board-listájának végére rakjuk
+    -- Ha p_position NULL vagy < 1  a projekt board-listájának végére rakjuk
     ------------------------------------------------------------------
     IF p_position IS NULL
        OR p_position < 1

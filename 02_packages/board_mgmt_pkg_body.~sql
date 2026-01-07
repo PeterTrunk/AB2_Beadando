@@ -1,11 +1,9 @@
 ﻿CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
-  PROCEDURE create_board_prc(
-    p_project_id IN board.project_id%TYPE,
-    p_board_name IN board.board_name%TYPE,
-    p_is_default IN board.is_default%TYPE DEFAULT 0,
-    p_position   IN board.position%TYPE,
-    p_board_id   OUT board.id%TYPE
-  ) IS
+  PROCEDURE create_board_prc(p_project_id IN board.project_id%TYPE
+                            ,p_board_name IN board.board_name%TYPE
+                            ,p_is_default IN board.is_default%TYPE DEFAULT 0
+                            ,p_position   IN board.position%TYPE
+                            ,p_board_id   OUT board.id%TYPE) IS
     l_project_cnt NUMBER;
     l_position    board.position%TYPE;
   BEGIN
@@ -16,77 +14,73 @@
       INTO l_project_cnt
       FROM app_project
      WHERE id = p_project_id;
-
-    IF l_project_cnt = 0 THEN
-      RAISE_APPLICATION_ERROR(
-        -20110,
-        'create_board_prc: a megadott projekt nem létezik (project_id='
-        || p_project_id || ').'
-      );
+  
+    IF l_project_cnt = 0
+    THEN
+      raise_application_error(-20110,
+                              'create_board_prc: a megadott projekt nem létezik (project_id=' ||
+                              p_project_id || ').');
     END IF;
-
+  
     ------------------------------------------------------------------
     -- Pozíció meghatározása
     -- Ha p_position NULL vagy < 1 → a projekt board-listájának végére rakjuk
     ------------------------------------------------------------------
-    IF p_position IS NULL OR p_position < 1 THEN
-      SELECT NVL(MAX(position), 0) + 1
+    IF p_position IS NULL
+       OR p_position < 1
+    THEN
+      SELECT nvl(MAX(position), 0) + 1
         INTO l_position
         FROM board
        WHERE project_id = p_project_id;
     ELSE
       l_position := p_position;
     END IF;
-
+  
     ------------------------------------------------------------------
     -- Board beszúrása
     ------------------------------------------------------------------
-    INSERT INTO board (
-      project_id,
-      board_name,
-      is_default,
-      position,
-      created_at
-    ) VALUES (
-      p_project_id,
-      p_board_name,
-      NVL(p_is_default, 0),
-      l_position,
-      SYSDATE
-    )
+    INSERT INTO board
+      (project_id
+      ,board_name
+      ,is_default
+      ,position
+      ,created_at)
+    VALUES
+      (p_project_id
+      ,p_board_name
+      ,nvl(p_is_default, 0)
+      ,l_position
+      ,SYSDATE)
     RETURNING id INTO p_board_id;
-
+  
     ------------------------------------------------------------------
     -- Ha default board, akkor a többi default flag-et levesszük
     ------------------------------------------------------------------
-    IF NVL(p_is_default, 0) = 1 THEN
+    IF nvl(p_is_default, 0) = 1
+    THEN
       -- minden más boardról levesszük az is_default-ot
       UPDATE board
          SET is_default = 0
        WHERE project_id = p_project_id
          AND id <> p_board_id;
-
+    
       -- biztos ami biztos, ezt az egyet 1-re tesszük
-      UPDATE board
-         SET is_default = 1
-       WHERE id = p_board_id;
+      UPDATE board SET is_default = 1 WHERE id = p_board_id;
     END IF;
-
+  
   EXCEPTION
     WHEN dup_val_on_index THEN
-      RAISE_APPLICATION_ERROR(
-        -20111,
-        'create_board_prc: ütközés az egyedi constrainten (valószínűleg (project_id, board_name) vagy (project_id, position)). ' ||
-        '(project_id=' || p_project_id || ', board_name="' || p_board_name || '")'
-      );
+      raise_application_error(-20111,
+                              'create_board_prc: ütközés az egyedi constrainten (valószínűleg (project_id, board_name) vagy (project_id, position)). ' ||
+                              '(project_id=' || p_project_id ||
+                              ', board_name="' || p_board_name || '")');
     WHEN OTHERS THEN
-      RAISE_APPLICATION_ERROR(
-        -20112,
-        'create_board_prc hiba (project_id=' || p_project_id ||
-        ', board_name="' || p_board_name || '"): ' || SQLERRM
-      );
+      raise_application_error(-20112,
+                              'create_board_prc hiba (project_id=' ||
+                              p_project_id || ', board_name="' ||
+                              p_board_name || '"): ' || SQLERRM);
   END create_board_prc;
-
 
   PROCEDURE set_default_board_prc(p_project_id IN board.project_id%TYPE
                                  ,p_board_id   IN board.id%TYPE) IS
