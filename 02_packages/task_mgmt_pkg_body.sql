@@ -21,7 +21,7 @@
     ------------------------------------------------------------------
     -- 1. Task key generálása projekt alapján (PMA-0001, DEVOPS-0001…)
     ------------------------------------------------------------------
-    l_task_key := build_next_task_key_fnc(p_project_id);
+    l_task_key := util_pkg.build_next_task_key_fnc(p_project_id);
   
     ------------------------------------------------------------------
     -- 2. POSITION meghatározása az oszlopon belül

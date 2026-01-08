@@ -1,8 +1,8 @@
-CREATE OR REPLACE PROCEDURE create_auto_id_created_trg_prc(p_table_name IN VARCHAR2) IS
+ÔªøCREATE OR REPLACE PROCEDURE create_auto_id_created_trg_prc(p_table_name IN VARCHAR2) IS
   v_tab         VARCHAR2(30);
   v_cnt         NUMBER;
   v_has_created NUMBER;
-  v_has_joined  NUMBER;  -- JOINED_AT oszlop? (PROJECT_MEMBER-hez)
+  v_has_joined  NUMBER;
   v_has_id      NUMBER;
   v_has_seq     NUMBER;
   v_sql         VARCHAR2(32767);
@@ -13,7 +13,7 @@ CREATE OR REPLACE PROCEDURE create_auto_id_created_trg_prc(p_table_name IN VARCH
   e_id_but_no_seq    EXCEPTION;
 BEGIN
   ------------------------------------------------------------------
-  -- 0. Bemenet valid·l·sa
+  -- 0. Bemenet valid√°l√°sa
   ------------------------------------------------------------------
   IF p_table_name IS NULL
      OR TRIM(p_table_name) IS NULL
@@ -36,7 +36,7 @@ BEGIN
   END IF;
 
   ------------------------------------------------------------------
-  -- 1. Oszlopok vizsg·lata: CREATED_AT, JOINED_AT, ID
+  -- 1. Oszlopok vizsg√°lata: CREATED_AT, JOINED_AT, ID
   ------------------------------------------------------------------
   SELECT COUNT(*)
     INTO v_has_created
@@ -56,7 +56,7 @@ BEGIN
    WHERE table_name = v_tab
      AND column_name = 'ID';
 
-  -- Ha van ID oszlop, legyen hozz· <TABLE>_SEQ sequence is
+  -- Ha van ID oszlop, legyen hozz√° <TABLE>_SEQ sequence is
   IF v_has_id > 0
   THEN
     SELECT COUNT(*)
@@ -71,7 +71,7 @@ BEGIN
   END IF;
 
   ------------------------------------------------------------------
-  -- 2. Ha sem CREATED_AT, sem ID, sem (PROJECT_MEMBER JOINED_AT), nem csin·lunk semmit
+  -- 2. Ha sem CREATED_AT, sem ID, sem (PROJECT_MEMBER JOINED_AT), nem csin√°lunk semmit
   ------------------------------------------------------------------
   IF v_has_created = 0
      AND v_has_id = 0
@@ -81,20 +81,20 @@ BEGIN
   END IF;
 
   ------------------------------------------------------------------
-  -- 3. Trigger szˆveg gener·l·sa
+  -- 3. Trigger sz√∂veg gener√°l√°sa
   ------------------------------------------------------------------
   v_sql := 'CREATE OR REPLACE TRIGGER ' || v_tab || '_BI_AUTO ' ||
            'BEFORE INSERT ON ' || v_tab || ' ' || 'FOR EACH ROW ' ||
            'BEGIN ';
 
-  -- CREATED_AT tˆltÈse, ha van ilyen oszlop
+  -- CREATED_AT t√∂lt√©se, ha van ilyen oszlop
   IF v_has_created > 0
   THEN
     v_sql := v_sql || 'IF :NEW.created_at IS NULL THEN ' ||
              '  :NEW.created_at := SYSDATE; ' || 'END IF; ';
   END IF;
 
-  -- PROJECT_MEMBER esetÈn a JOINED_AT-et is tˆlts¸k
+  -- PROJECT_MEMBER eset√©n a JOINED_AT-et is t√∂lts√ºk
   IF v_tab = 'PROJECT_MEMBER'
      AND v_has_joined > 0
   THEN
@@ -102,7 +102,7 @@ BEGIN
              '  :NEW.joined_at := SYSDATE; ' || 'END IF; ';
   END IF;
 
-  -- ID tˆltÈse, ha van ID oszlop + lÈtezik <TABLE>_SEQ
+  -- ID t√∂lt√©se, ha van ID oszlop + l√©tezik <TABLE>_SEQ
   IF v_has_id > 0
   THEN
     v_sql := v_sql || 'IF :NEW.id IS NULL THEN ' || '  SELECT ' || v_tab ||
@@ -112,7 +112,7 @@ BEGIN
   v_sql := v_sql || 'END;';
 
   ------------------------------------------------------------------
-  -- 4. Trigger lÈtrehoz·sa
+  -- 4. Trigger l√©trehoz√°sa
   ------------------------------------------------------------------
   EXECUTE IMMEDIATE v_sql;
 

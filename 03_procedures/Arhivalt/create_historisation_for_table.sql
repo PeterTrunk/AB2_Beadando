@@ -1,6 +1,6 @@
-CREATE OR REPLACE PROCEDURE create_historisation_for_table(p_table_name IN VARCHAR2) IS
+ÔªøCREATE OR REPLACE PROCEDURE create_historisation_for_table(p_table_name IN VARCHAR2) IS
   v_tab        VARCHAR2(30);
-  -- Max 30 karakter hossz miatt limit·lom a bementetet.
+  -- Max 30 karakter hossz miatt limit√°lom a bementetet.
   v_cnt        NUMBER;
   v_col_list   VARCHAR2(32767);
   v_new_list   VARCHAR2(32767);
@@ -12,7 +12,7 @@ CREATE OR REPLACE PROCEDURE create_historisation_for_table(p_table_name IN VARCH
   e_table_not_exists  EXCEPTION;
 BEGIN
   ----------------------------------------------------------------------------
-  -- 0. Input valid·ciÛ + korrekciÛ
+  -- 0. Input valid√°ci√≥ + korrekci√≥
   ----------------------------------------------------------------------------
   IF p_table_name IS NULL OR TRIM(p_table_name) IS NULL THEN
      RAISE e_invalid_name;
@@ -33,7 +33,7 @@ BEGIN
   END IF;
   
   ----------------------------------------------------------------------------
-  -- 1. Oszlopok hozz·ad·sa: MOD_USER, DML_FLAG, LAST_MODIFIED, VERSION
+  -- 1. Oszlopok hozz√°ad√°sa: MOD_USER, DML_FLAG, LAST_MODIFIED, VERSION
   ----------------------------------------------------------------------------
 
   -- MOD_USER
@@ -41,7 +41,7 @@ BEGIN
   FROM user_tab_cols
   WHERE table_name = v_tab
     AND column_name = 'MOD_USER';
-  -- EllenˆrzÈs hogy lÈtezik e a hozz·adandÛ oszlop
+  -- Ellen√∂rz√©s hogy l√©tezik e a hozz√°adand√≥ oszlop
   
   IF v_cnt = 0 THEN
     EXECUTE IMMEDIATE
@@ -82,8 +82,8 @@ BEGIN
   END IF;
 
   ------------------------------------------------------------------
-  -- 2. HISTORY t·bla lÈtrehoz·sa: <TABLE>_H
-  --    csak minden oszlop ·tm·sol·sa
+  -- 2. HISTORY t√°bla l√©trehoz√°sa: <TABLE>_H
+  --    csak minden oszlop √°tm√°sol√°sa
   ------------------------------------------------------------------
 
   SELECT COUNT(*) INTO v_cnt
@@ -98,7 +98,7 @@ BEGIN
   END IF;
 
   ------------------------------------------------------------------
-  -- 3. Oszloplista legener·l·sa a triggerekhez
+  -- 3. Oszloplista legener√°l√°sa a triggerekhez
   ------------------------------------------------------------------
 
   v_col_list := NULL;
@@ -111,21 +111,21 @@ BEGIN
     WHERE table_name = v_tab
     ORDER BY column_id
   ) LOOP
-    -- kˆzˆs oszloplista
+    -- k√∂z√∂s oszloplista
     IF v_col_list IS NULL THEN
       v_col_list := c.column_name;
     ELSE
       v_col_list := v_col_list || ',' || c.column_name;
     END IF;
 
-    -- INSERT/UPDATE esetÈn :NEW.<column> a DML_FLAG-et m·r kezeltem a m·sik triggerben.
+    -- INSERT/UPDATE eset√©n :NEW.<column> a DML_FLAG-et m√°r kezeltem a m√°sik triggerben.
     IF v_new_list IS NULL THEN
       v_new_list := ':NEW.' || c.column_name;
     ELSE
       v_new_list := v_new_list || ',:NEW.' || c.column_name;
     END IF;
 
-    -- DELETE esetÈn: minden :OLD.<column>, KIV…VE DML_FLAG = 'D'.
+    -- DELETE eset√©n: minden :OLD.<column>, KIV√âVE DML_FLAG = 'D'.
     IF c.column_name = 'DML_FLAG' THEN
       IF v_old_del_list IS NULL THEN
         v_old_del_list := '''D''';
@@ -143,7 +143,7 @@ BEGIN
 
   ------------------------------------------------------------------
   -- 4. BEFORE INSERT/UPDATE trigger: <TABLE>_TRG
-  --    mod_user, dml_flag, last_modified, version tˆltÈse
+  --    mod_user, dml_flag, last_modified, version t√∂lt√©se
   ------------------------------------------------------------------
 
   v_sql :=
@@ -168,7 +168,7 @@ BEGIN
 
   ------------------------------------------------------------------
   -- 5. AFTER INSERT/UPDATE/DELETE trigger: <TABLE>_H_TRG
-  --    history logol·s <TABLE>_H t·bl·ba (dump)
+  --    history logol√°s <TABLE>_H t√°bl√°ba (dump)
   ------------------------------------------------------------------
 
   v_sql :=

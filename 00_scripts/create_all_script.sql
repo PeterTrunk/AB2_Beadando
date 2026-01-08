@@ -557,481 +557,525 @@ CREATE OR REPLACE TYPE ty_board_overview AS OBJECT
 
 -- create_all_packages_functions_procedures.sql
 
--- Procedure arra hogy automatikus id és created_at adat kerüljön insertkor
+CREATE OR REPLACE PACKAGE audit_util_pkg IS 
+  --Első Visszajelzés Utáni javítás (PKG -ekbe szervezés)
+ 
+  --------------------------------------------------------------------
+  -- AUTO ID + CREATED_AT TRIGGER LÉTREHOZÁSA
+  -- Dinamikus SQL-lel létrehoz egy BEFORE INSERT triggert,
+  -- amely automatikusan tölti az ID-t (sequence-ből) és a CREATED_AT-et.
+  --------------------------------------------------------------------
+  PROCEDURE create_auto_id_created_trg_prc(p_table_name IN VARCHAR2);
 
-CREATE OR REPLACE PROCEDURE create_auto_id_created_trg_prc(p_table_name IN VARCHAR2) IS
-  v_tab         VARCHAR2(30);
-  v_cnt         NUMBER;
-  v_has_created NUMBER;
-  v_has_joined  NUMBER;
-  v_has_id      NUMBER;
-  v_has_seq     NUMBER;
-  v_sql         VARCHAR2(32767);
+  --------------------------------------------------------------------
+  -- HISTORISATION LÉTREHOZÁSA
+  -- Létrehozza az _H history táblát + audit mezőket + trigger(eke)t
+  -- a megadott alap tábla alapján.
+  --------------------------------------------------------------------
+  PROCEDURE create_historisation_for_table(p_table_name IN VARCHAR2);
 
-  e_invalid_name     EXCEPTION;
-  e_name_too_long    EXCEPTION;
-  e_table_not_exists EXCEPTION;
-  e_id_but_no_seq    EXCEPTION;
-BEGIN
-  ------------------------------------------------------------------
-  -- 0. Bemenet validálása
-  ------------------------------------------------------------------
-  IF p_table_name IS NULL
-     OR TRIM(p_table_name) IS NULL
-  THEN
-    RAISE e_invalid_name;
-  END IF;
+END audit_util_pkg;
+/
 
-  IF length(TRIM(p_table_name)) > 30
-  THEN
-    RAISE e_name_too_long;
-  END IF;
-
-  v_tab := upper(TRIM(p_table_name));
-
-  SELECT COUNT(*) INTO v_cnt FROM user_tables WHERE table_name = v_tab;
-
-  IF v_cnt = 0
-  THEN
-    RAISE e_table_not_exists;
-  END IF;
-
-  ------------------------------------------------------------------
-  -- 1. Oszlopok vizsgálata: CREATED_AT, JOINED_AT, ID
-  ------------------------------------------------------------------
-  SELECT COUNT(*)
-    INTO v_has_created
-    FROM user_tab_cols
-   WHERE table_name = v_tab
-     AND column_name = 'CREATED_AT';
-
-  SELECT COUNT(*)
-    INTO v_has_joined
-    FROM user_tab_cols
-   WHERE table_name = v_tab
-     AND column_name = 'JOINED_AT';
-
-  SELECT COUNT(*)
-    INTO v_has_id
-    FROM user_tab_cols
-   WHERE table_name = v_tab
-     AND column_name = 'ID';
-
-  -- Ha van ID oszlop, legyen hozzá <TABLE>_SEQ sequence is
-  IF v_has_id > 0
-  THEN
-    SELECT COUNT(*)
-      INTO v_has_seq
-      FROM user_sequences
-     WHERE sequence_name = v_tab || '_SEQ';
+CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
   
-    IF v_has_seq = 0
+  PROCEDURE create_auto_id_created_trg_prc(p_table_name IN VARCHAR2) IS
+    v_tab         VARCHAR2(30);
+    v_cnt         NUMBER;
+    v_has_created NUMBER;
+    v_has_joined  NUMBER;
+    v_has_id      NUMBER;
+    v_has_seq     NUMBER;
+    v_sql         VARCHAR2(32767);
+
+    e_invalid_name     EXCEPTION;
+    e_name_too_long    EXCEPTION;
+    e_table_not_exists EXCEPTION;
+    e_id_but_no_seq    EXCEPTION;
+  BEGIN
+    ------------------------------------------------------------------
+    -- 0. Bemenet validálása
+    ------------------------------------------------------------------
+    IF p_table_name IS NULL
+       OR TRIM(p_table_name) IS NULL
     THEN
-      RAISE e_id_but_no_seq;
+      RAISE e_invalid_name;
     END IF;
-  END IF;
 
-  ------------------------------------------------------------------
-  -- 2. Ha sem CREATED_AT, sem ID, sem (PROJECT_MEMBER JOINED_AT), nem csinálunk semmit
-  ------------------------------------------------------------------
-  IF v_has_created = 0
-     AND v_has_id = 0
-     AND NOT (v_tab = 'PROJECT_MEMBER' AND v_has_joined > 0)
-  THEN
-    RETURN;
-  END IF;
+    IF length(TRIM(p_table_name)) > 30
+    THEN
+      RAISE e_name_too_long;
+    END IF;
 
-  ------------------------------------------------------------------
-  -- 3. Trigger szöveg generálása
-  ------------------------------------------------------------------
-  v_sql := 'CREATE OR REPLACE TRIGGER ' || v_tab || '_BI_AUTO ' ||
-           'BEFORE INSERT ON ' || v_tab || ' ' || 'FOR EACH ROW ' ||
-           'BEGIN ';
+    v_tab := upper(TRIM(p_table_name));
 
-  -- CREATED_AT töltése, ha van ilyen oszlop
-  IF v_has_created > 0
-  THEN
-    v_sql := v_sql || 'IF :NEW.created_at IS NULL THEN ' ||
-             '  :NEW.created_at := SYSDATE; ' || 'END IF; ';
-  END IF;
+    SELECT COUNT(*) INTO v_cnt FROM user_tables WHERE table_name = v_tab;
 
-  -- PROJECT_MEMBER esetén a JOINED_AT-et is töltsük
-  IF v_tab = 'PROJECT_MEMBER'
-     AND v_has_joined > 0
-  THEN
-    v_sql := v_sql || 'IF :NEW.joined_at IS NULL THEN ' ||
-             '  :NEW.joined_at := SYSDATE; ' || 'END IF; ';
-  END IF;
+    IF v_cnt = 0
+    THEN
+      RAISE e_table_not_exists;
+    END IF;
 
-  -- ID töltése, ha van ID oszlop + létezik <TABLE>_SEQ
-  IF v_has_id > 0
-  THEN
-    v_sql := v_sql || 'IF :NEW.id IS NULL THEN ' || '  SELECT ' || v_tab ||
-             '_SEQ.NEXTVAL INTO :NEW.id FROM dual; ' || 'END IF; ';
-  END IF;
+    ------------------------------------------------------------------
+    -- 1. Oszlopok vizsgálata: CREATED_AT, JOINED_AT, ID
+    ------------------------------------------------------------------
+    SELECT COUNT(*)
+      INTO v_has_created
+      FROM user_tab_cols
+     WHERE table_name = v_tab
+       AND column_name = 'CREATED_AT';
 
-  v_sql := v_sql || 'END;';
+    SELECT COUNT(*)
+      INTO v_has_joined
+      FROM user_tab_cols
+     WHERE table_name = v_tab
+       AND column_name = 'JOINED_AT';
 
-  ------------------------------------------------------------------
-  -- 4. Trigger létrehozása
-  ------------------------------------------------------------------
-  EXECUTE IMMEDIATE v_sql;
+    SELECT COUNT(*)
+      INTO v_has_id
+      FROM user_tab_cols
+     WHERE table_name = v_tab
+       AND column_name = 'ID';
 
-EXCEPTION
-  WHEN e_invalid_name THEN
-    raise_application_error(-20100,
-                            'create_auto_id_created_trg_prc: table name must not be NULL or empty.');
-  
-  WHEN e_name_too_long THEN
-    raise_application_error(-20101,
-                            'create_auto_id_created_trg_prc: table name "' ||
-                            TRIM(p_table_name) ||
-                            '" is longer than 30 characters.');
-  
-  WHEN e_table_not_exists THEN
-    raise_application_error(-20102,
-                            'create_auto_id_created_trg_prc: table "' ||
-                            v_tab || '" does not exist in current schema.');
-  
-  WHEN e_id_but_no_seq THEN
-    raise_application_error(-20103,
-                            'create_auto_id_created_trg_prc: table "' ||
-                            v_tab || '" has ID column but no sequence "' ||
-                            v_tab || '_SEQ".');
-  
-  WHEN OTHERS THEN
-    raise_application_error(-20199,
-                            'create_auto_id_created_trg_prc failed for table: "' ||
-                            nvl(v_tab, TRIM(p_table_name)) || '": ' ||
-                            SQLERRM);
-END;
-/
+    -- Ha van ID oszlop, legyen hozzá <TABLE>_SEQ sequence is
+    IF v_has_id > 0
+    THEN
+      SELECT COUNT(*)
+        INTO v_has_seq
+        FROM user_sequences
+       WHERE sequence_name = v_tab || '_SEQ';
+    
+      IF v_has_seq = 0
+      THEN
+        RAISE e_id_but_no_seq;
+      END IF;
+    END IF;
 
--- Automatikus _h táblák és triggerek létrehozása a táblákhoz
+    ------------------------------------------------------------------
+    -- 2. Ha sem CREATED_AT, sem ID, sem (PROJECT_MEMBER JOINED_AT), nem csinálunk semmit
+    ------------------------------------------------------------------
+    IF v_has_created = 0
+       AND v_has_id = 0
+       AND NOT (v_tab = 'PROJECT_MEMBER' AND v_has_joined > 0)
+    THEN
+      RETURN;
+    END IF;
 
-CREATE OR REPLACE PROCEDURE create_historisation_for_table(p_table_name IN VARCHAR2) IS
-  v_tab        VARCHAR2(30);
-  -- Max 30 karakter hossz miatt limitálom a bementetet.
-  v_cnt        NUMBER;
-  v_col_list   VARCHAR2(32767);
-  v_new_list   VARCHAR2(32767);
-  v_old_del_list VARCHAR2(32767);
-  v_sql        VARCHAR2(32767);
-  
-  e_invalid_name      EXCEPTION;
-  e_name_too_long     EXCEPTION;
-  e_table_not_exists  EXCEPTION;
-BEGIN
-  ----------------------------------------------------------------------------
-  -- 0. Input validáció + korrekció
-  ----------------------------------------------------------------------------
-  IF p_table_name IS NULL OR TRIM(p_table_name) IS NULL THEN
-     RAISE e_invalid_name;
-  END IF;
+    ------------------------------------------------------------------
+    -- 3. Trigger szöveg generálása
+    ------------------------------------------------------------------
+    v_sql := 'CREATE OR REPLACE TRIGGER ' || v_tab || '_BI_AUTO ' ||
+             'BEFORE INSERT ON ' || v_tab || ' ' || 'FOR EACH ROW ' ||
+             'BEGIN ';
 
-  IF LENGTH(TRIM(p_table_name)) > 30 THEN
-    RAISE e_name_too_long;
-  END IF;
+    -- CREATED_AT töltése, ha van ilyen oszlop
+    IF v_has_created > 0
+    THEN
+      v_sql := v_sql || 'IF :NEW.created_at IS NULL THEN ' ||
+               '  :NEW.created_at := SYSDATE; ' || 'END IF; ';
+    END IF;
 
-  v_tab := UPPER(TRIM(p_table_name));
-  
-  SELECT COUNT(*)
-  INTO v_cnt
-  FROM user_tables
-  WHERE table_name = v_tab;
-  IF v_cnt = 0 THEN
-    RAISE e_table_not_exists;
-  END IF;
-  
-  ----------------------------------------------------------------------------
-  -- 1. Oszlopok hozzáadása: MOD_USER, DML_FLAG, LAST_MODIFIED, VERSION
-  ----------------------------------------------------------------------------
+    -- PROJECT_MEMBER esetén a JOINED_AT-et is töltsük
+    IF v_tab = 'PROJECT_MEMBER'
+       AND v_has_joined > 0
+    THEN
+      v_sql := v_sql || 'IF :NEW.joined_at IS NULL THEN ' ||
+               '  :NEW.joined_at := SYSDATE; ' || 'END IF; ';
+    END IF;
 
-  -- MOD_USER
-  SELECT COUNT(*) INTO v_cnt
-  FROM user_tab_cols
-  WHERE table_name = v_tab
-    AND column_name = 'MOD_USER';
-  -- Ellenörzés hogy létezik e a hozzáadandó oszlop
-  
-  IF v_cnt = 0 THEN
-    EXECUTE IMMEDIATE
-      'ALTER TABLE ' || v_tab || ' ADD (mod_user VARCHAR2(300))';
-  END IF;
+    -- ID töltése, ha van ID oszlop + létezik <TABLE>_SEQ
+    IF v_has_id > 0
+    THEN
+      v_sql := v_sql || 'IF :NEW.id IS NULL THEN ' || '  SELECT ' || v_tab ||
+               '_SEQ.NEXTVAL INTO :NEW.id FROM dual; ' || 'END IF; ';
+    END IF;
 
-  -- DML_FLAG
-  SELECT COUNT(*) INTO v_cnt
-  FROM user_tab_cols
-  WHERE table_name = v_tab
-    AND column_name = 'DML_FLAG';
+    v_sql := v_sql || 'END;';
 
-  IF v_cnt = 0 THEN
-    EXECUTE IMMEDIATE
-      'ALTER TABLE ' || v_tab || ' ADD (dml_flag VARCHAR2(1))';
-  END IF;
-
-  -- LAST_MODIFIED
-  SELECT COUNT(*) INTO v_cnt
-  FROM user_tab_cols
-  WHERE table_name = v_tab
-    AND column_name = 'LAST_MODIFIED';
-
-  IF v_cnt = 0 THEN
-    EXECUTE IMMEDIATE
-      'ALTER TABLE ' || v_tab || ' ADD (last_modified DATE)';
-  END IF;
-
-  -- VERSION
-  SELECT COUNT(*) INTO v_cnt
-  FROM user_tab_cols
-  WHERE table_name = v_tab
-    AND column_name = 'VERSION';
-
-  IF v_cnt = 0 THEN
-    EXECUTE IMMEDIATE
-      'ALTER TABLE ' || v_tab || ' ADD (version NUMBER)';
-  END IF;
-
-  ------------------------------------------------------------------
-  -- 2. HISTORY tábla létrehozása: <TABLE>_H
-  --    csak minden oszlop átmásolása
-  ------------------------------------------------------------------
-
-  SELECT COUNT(*) INTO v_cnt
-  FROM user_tables
-  WHERE table_name = v_tab || '_H';
-
-  IF v_cnt = 0 THEN
-    v_sql :=
-      'CREATE TABLE ' || v_tab || '_H AS ' ||
-      'SELECT * FROM ' || v_tab || ' WHERE 1 = 2';
+    ------------------------------------------------------------------
+    -- 4. Trigger létrehozása
+    ------------------------------------------------------------------
     EXECUTE IMMEDIATE v_sql;
-  END IF;
 
-  ------------------------------------------------------------------
-  -- 3. Oszloplista legenerálása a triggerekhez
-  ------------------------------------------------------------------
+  EXCEPTION
+    WHEN e_invalid_name THEN
+      raise_application_error(-20100,
+                              'create_auto_id_created_trg_prc: table name must not be NULL or empty.');
+    
+    WHEN e_name_too_long THEN
+      raise_application_error(-20101,
+                              'create_auto_id_created_trg_prc: table name "' ||
+                              TRIM(p_table_name) ||
+                              '" is longer than 30 characters.');
+    
+    WHEN e_table_not_exists THEN
+      raise_application_error(-20102,
+                              'create_auto_id_created_trg_prc: table "' ||
+                              v_tab || '" does not exist in current schema.');
+    
+    WHEN e_id_but_no_seq THEN
+      raise_application_error(-20103,
+                              'create_auto_id_created_trg_prc: table "' ||
+                              v_tab || '" has ID column but no sequence "' ||
+                              v_tab || '_SEQ".');
+    
+    WHEN OTHERS THEN
+      raise_application_error(-20199,
+                              'create_auto_id_created_trg_prc failed for table: "' ||
+                              nvl(v_tab, TRIM(p_table_name)) || '": ' ||
+                              SQLERRM);
+  END create_auto_id_created_trg_prc;
+    
+  PROCEDURE create_historisation_for_table(p_table_name IN VARCHAR2) IS
+    v_tab VARCHAR2(30);
+    -- Max 30 karakter hossz miatt limitálom a bementetet.
+    v_cnt          NUMBER;
+    v_col_list     VARCHAR2(32767);
+    v_new_list     VARCHAR2(32767);
+    v_old_del_list VARCHAR2(32767);
+    v_sql          VARCHAR2(32767);
 
-  v_col_list := NULL;
-  v_new_list := NULL;
-  v_old_del_list := NULL;
-
-  FOR c IN (
-    SELECT column_name
-    FROM user_tab_cols
-    WHERE table_name = v_tab
-    ORDER BY column_id
-  ) LOOP
-    -- közös oszloplista
-    IF v_col_list IS NULL THEN
-      v_col_list := c.column_name;
-    ELSE
-      v_col_list := v_col_list || ',' || c.column_name;
+    e_invalid_name     EXCEPTION;
+    e_name_too_long    EXCEPTION;
+    e_table_not_exists EXCEPTION;
+  BEGIN
+    ----------------------------------------------------------------------------
+    -- 0. Input validáció + korrekció
+    ----------------------------------------------------------------------------
+    IF p_table_name IS NULL
+       OR TRIM(p_table_name) IS NULL
+    THEN
+      RAISE e_invalid_name;
     END IF;
 
-    -- INSERT/UPDATE esetén :NEW.<column> a DML_FLAG-et már kezeltem a másik triggerben.
-    IF v_new_list IS NULL THEN
-      v_new_list := ':NEW.' || c.column_name;
-    ELSE
-      v_new_list := v_new_list || ',:NEW.' || c.column_name;
+    IF length(TRIM(p_table_name)) > 30
+    THEN
+      RAISE e_name_too_long;
     END IF;
 
-    -- DELETE esetén: minden :OLD.<column>, KIVÉVE DML_FLAG = 'D'.
-    IF c.column_name = 'DML_FLAG' THEN
-      IF v_old_del_list IS NULL THEN
-        v_old_del_list := '''D''';
+    v_tab := upper(TRIM(p_table_name));
+
+    SELECT COUNT(*) INTO v_cnt FROM user_tables WHERE table_name = v_tab;
+    IF v_cnt = 0
+    THEN
+      RAISE e_table_not_exists;
+    END IF;
+
+    ----------------------------------------------------------------------------
+    -- 1. Oszlopok hozzáadása: MOD_USER, DML_FLAG, LAST_MODIFIED, VERSION
+    ----------------------------------------------------------------------------
+
+    -- MOD_USER
+    SELECT COUNT(*)
+      INTO v_cnt
+      FROM user_tab_cols
+     WHERE table_name = v_tab
+       AND column_name = 'MOD_USER';
+    -- Ellenörzés hogy létezik e a hozzáadandó oszlop
+
+    IF v_cnt = 0
+    THEN
+      EXECUTE IMMEDIATE 'ALTER TABLE ' || v_tab ||
+                        ' ADD (mod_user VARCHAR2(300))';
+    END IF;
+
+    -- DML_FLAG
+    SELECT COUNT(*)
+      INTO v_cnt
+      FROM user_tab_cols
+     WHERE table_name = v_tab
+       AND column_name = 'DML_FLAG';
+
+    IF v_cnt = 0
+    THEN
+      EXECUTE IMMEDIATE 'ALTER TABLE ' || v_tab ||
+                        ' ADD (dml_flag VARCHAR2(1))';
+    END IF;
+
+    -- LAST_MODIFIED
+    SELECT COUNT(*)
+      INTO v_cnt
+      FROM user_tab_cols
+     WHERE table_name = v_tab
+       AND column_name = 'LAST_MODIFIED';
+
+    IF v_cnt = 0
+    THEN
+      EXECUTE IMMEDIATE 'ALTER TABLE ' || v_tab ||
+                        ' ADD (last_modified DATE)';
+    END IF;
+
+    -- VERSION
+    SELECT COUNT(*)
+      INTO v_cnt
+      FROM user_tab_cols
+     WHERE table_name = v_tab
+       AND column_name = 'VERSION';
+
+    IF v_cnt = 0
+    THEN
+      EXECUTE IMMEDIATE 'ALTER TABLE ' || v_tab || ' ADD (version NUMBER)';
+    END IF;
+
+    ------------------------------------------------------------------
+    -- 2. HISTORY tábla létrehozása: <TABLE>_H
+    --    csak minden oszlop átmásolása
+    ------------------------------------------------------------------
+
+    SELECT COUNT(*)
+      INTO v_cnt
+      FROM user_tables
+     WHERE table_name = v_tab || '_H';
+
+    IF v_cnt = 0
+    THEN
+      v_sql := 'CREATE TABLE ' || v_tab || '_H AS ' || 'SELECT * FROM ' ||
+               v_tab || ' WHERE 1 = 2';
+      EXECUTE IMMEDIATE v_sql;
+    END IF;
+
+    ------------------------------------------------------------------
+    -- 3. Oszloplista legenerálása a triggerekhez
+    ------------------------------------------------------------------
+
+    v_col_list     := NULL;
+    v_new_list     := NULL;
+    v_old_del_list := NULL;
+
+    FOR c IN (SELECT column_name
+                FROM user_tab_cols
+               WHERE table_name = v_tab
+               ORDER BY column_id)
+    LOOP
+      -- közös oszloplista
+      IF v_col_list IS NULL
+      THEN
+        v_col_list := c.column_name;
       ELSE
-        v_old_del_list := v_old_del_list || ',''D''';
+        v_col_list := v_col_list || ',' || c.column_name;
       END IF;
-    ELSE
-      IF v_old_del_list IS NULL THEN
-        v_old_del_list := ':OLD.' || c.column_name;
+    
+      -- INSERT/UPDATE esetén :NEW.<column> a DML_FLAG-et már kezeltem a másik triggerben.
+      IF v_new_list IS NULL
+      THEN
+        v_new_list := ':NEW.' || c.column_name;
       ELSE
-        v_old_del_list := v_old_del_list || ',:OLD.' || c.column_name;
+        v_new_list := v_new_list || ',:NEW.' || c.column_name;
       END IF;
-    END IF;
-  END LOOP;
+    
+      -- DELETE esetén: minden :OLD.<column>, KIVÉVE DML_FLAG = 'D'.
+      IF c.column_name = 'DML_FLAG'
+      THEN
+        IF v_old_del_list IS NULL
+        THEN
+          v_old_del_list := '''D''';
+        ELSE
+          v_old_del_list := v_old_del_list || ',''D''';
+        END IF;
+      ELSE
+        IF v_old_del_list IS NULL
+        THEN
+          v_old_del_list := ':OLD.' || c.column_name;
+        ELSE
+          v_old_del_list := v_old_del_list || ',:OLD.' || c.column_name;
+        END IF;
+      END IF;
+    END LOOP;
 
-  ------------------------------------------------------------------
-  -- 4. BEFORE INSERT/UPDATE trigger: <TABLE>_TRG
-  --    mod_user, dml_flag, last_modified, version töltése
-  ------------------------------------------------------------------
+    ------------------------------------------------------------------
+    -- 4. BEFORE INSERT/UPDATE trigger: <TABLE>_TRG
+    --    mod_user, dml_flag, last_modified, version töltése
+    ------------------------------------------------------------------
 
-  v_sql :=
-    'CREATE OR REPLACE TRIGGER ' || v_tab || '_TRG ' ||
-    'BEFORE INSERT OR UPDATE ON ' || v_tab || ' ' ||
-    'FOR EACH ROW ' ||
-    'BEGIN ' ||
-    '  IF INSERTING THEN ' ||
-    '    :NEW.mod_user      := sys_context(''USERENV'',''OS_USER''); ' ||
-    '    :NEW.dml_flag      := ''I''; ' ||
-    '    :NEW.last_modified := SYSDATE; ' ||
-    '    :NEW.version       := NVL(:NEW.version, 1); ' ||
-    '  ELSE ' ||
-    '    :NEW.mod_user      := sys_context(''USERENV'',''OS_USER''); ' ||
-    '    :NEW.dml_flag      := ''U''; ' ||
-    '    :NEW.last_modified := SYSDATE; ' ||
-    '    :NEW.version       := NVL(:OLD.version, 0) + 1; ' ||
-    '  END IF; ' ||
-    'END;';
+    v_sql := 'CREATE OR REPLACE TRIGGER ' || v_tab || '_TRG ' ||
+             'BEFORE INSERT OR UPDATE ON ' || v_tab || ' ' || 'FOR EACH ROW ' ||
+             'BEGIN ' || '  IF INSERTING THEN ' ||
+             '    :NEW.mod_user      := sys_context(''USERENV'',''OS_USER''); ' ||
+             '    :NEW.dml_flag      := ''I''; ' ||
+             '    :NEW.last_modified := SYSDATE; ' ||
+             '    :NEW.version       := NVL(:NEW.version, 1); ' || '  ELSE ' ||
+             '    :NEW.mod_user      := sys_context(''USERENV'',''OS_USER''); ' ||
+             '    :NEW.dml_flag      := ''U''; ' ||
+             '    :NEW.last_modified := SYSDATE; ' ||
+             '    :NEW.version       := NVL(:OLD.version, 0) + 1; ' ||
+             '  END IF; ' || 'END;';
 
-  EXECUTE IMMEDIATE v_sql;
+    EXECUTE IMMEDIATE v_sql;
 
-  ------------------------------------------------------------------
-  -- 5. AFTER INSERT/UPDATE/DELETE trigger: <TABLE>_H_TRG
-  --    history logolás <TABLE>_H táblába (dump)
-  ------------------------------------------------------------------
+    ------------------------------------------------------------------
+    -- 5. AFTER INSERT/UPDATE/DELETE trigger: <TABLE>_H_TRG
+    --    history logolás <TABLE>_H táblába (dump)
+    ------------------------------------------------------------------
 
-  v_sql :=
-    'CREATE OR REPLACE TRIGGER ' || v_tab || '_H_TRG ' ||
-    'AFTER INSERT OR UPDATE OR DELETE ON ' || v_tab || ' ' ||
-    'FOR EACH ROW ' ||
-    'BEGIN ' ||
-    '  IF DELETING THEN ' ||
-    '    INSERT INTO ' || v_tab || '_H (' || v_col_list || ') ' ||
-    '    VALUES (' || v_old_del_list || '); ' ||
-    '  ELSE ' ||
-    '    INSERT INTO ' || v_tab || '_H (' || v_col_list || ') ' ||
-    '    VALUES (' || v_new_list || '); ' ||
-    '  END IF; ' ||
-    'END;';
+    v_sql := 'CREATE OR REPLACE TRIGGER ' || v_tab || '_H_TRG ' ||
+             'AFTER INSERT OR UPDATE OR DELETE ON ' || v_tab || ' ' ||
+             'FOR EACH ROW ' || 'BEGIN ' || '  IF DELETING THEN ' ||
+             '    INSERT INTO ' || v_tab || '_H (' || v_col_list || ') ' ||
+             '    VALUES (' || v_old_del_list || '); ' || '  ELSE ' ||
+             '    INSERT INTO ' || v_tab || '_H (' || v_col_list || ') ' ||
+             '    VALUES (' || v_new_list || '); ' || '  END IF; ' || 'END;';
 
-  EXECUTE IMMEDIATE v_sql;
+    EXECUTE IMMEDIATE v_sql;
+
+  EXCEPTION
+    WHEN e_invalid_name THEN
+      raise_application_error(-20000,
+                              'create_historisation_for_table: table name must not be NULL or empty.');
+      RAISE;
+    WHEN e_name_too_long THEN
+      raise_application_error(-20001,
+                              'create_historisation_for_table: table name: "' ||
+                              p_table_name ||
+                              '" is longer than 30 characters (Oracle 11g limit).');
+      RAISE;
+    WHEN e_table_not_exists THEN
+      raise_application_error(-20002,
+                              'create_historisation_for_table: table "' ||
+                              v_tab || '" does not exist in current schema.');
+      RAISE;
+    WHEN OTHERS THEN
+      raise_application_error(-20009,
+                              'create_historisation_for_table failed for table "' ||
+                              nvl(v_tab, p_table_name) || '": ' || SQLERRM);
+      RAISE;
+  END create_historisation_for_table;
   
-EXCEPTION
-  WHEN e_invalid_name THEN
-    RAISE_APPLICATION_ERROR(
-      -20000,
-      'create_historisation_for_table: table name must not be NULL or empty.'
-    );
-    RAISE;
-  WHEN e_name_too_long THEN
-    RAISE_APPLICATION_ERROR(
-      -20001,
-      'create_historisation_for_table: table name: "' || p_table_name ||
-      '" is longer than 30 characters (Oracle 11g limit).'
-    );
-    RAISE;
-  WHEN e_table_not_exists THEN
-    RAISE_APPLICATION_ERROR(
-      -20002,
-      'create_historisation_for_table: table "' || v_tab ||
-      '" does not exist in current schema.'
-    );
-    RAISE;
-  WHEN OTHERS THEN
-    RAISE_APPLICATION_ERROR(
-      -20009,
-      'create_historisation_for_table failed for table "' ||
-      NVL(v_tab, p_table_name) || '": ' || SQLERRM
-    );
-    RAISE;
-END;
+END audit_util_pkg;
 /
+
 -- automatikus id és created at trg-k létrehozása
 
 BEGIN
-  create_auto_id_created_trg_prc('APP_USER');
-  create_auto_id_created_trg_prc('APP_ROLE');
-  create_auto_id_created_trg_prc('APP_PROJECT');
-  create_auto_id_created_trg_prc('PROJECT_MEMBER');
-  create_auto_id_created_trg_prc('TASK_STATUS');
-  create_auto_id_created_trg_prc('BOARD');
-  create_auto_id_created_trg_prc('COLUMN_DEF');
-  create_auto_id_created_trg_prc('SPRINT');
-  create_auto_id_created_trg_prc('TASK');
-  create_auto_id_created_trg_prc('LABELS');
-  create_auto_id_created_trg_prc('TASK_ASSIGNMENT');
-  create_auto_id_created_trg_prc('APP_COMMENT');
-  create_auto_id_created_trg_prc('INTEGRATION');
-  create_auto_id_created_trg_prc('COMMIT_LINK');
-  create_auto_id_created_trg_prc('PR_LINK');
-  create_auto_id_created_trg_prc('ATTACHMENT');
-  create_auto_id_created_trg_prc('APP_ACTIVITY');
+  audit_util_pkg.create_auto_id_created_trg_prc('APP_USER');
+  audit_util_pkg.create_auto_id_created_trg_prc('APP_ROLE');
+  audit_util_pkg.create_auto_id_created_trg_prc('APP_PROJECT');
+  audit_util_pkg.create_auto_id_created_trg_prc('PROJECT_MEMBER');
+  audit_util_pkg.create_auto_id_created_trg_prc('TASK_STATUS');
+  audit_util_pkg.create_auto_id_created_trg_prc('BOARD');
+  audit_util_pkg.create_auto_id_created_trg_prc('COLUMN_DEF');
+  audit_util_pkg.create_auto_id_created_trg_prc('SPRINT');
+  audit_util_pkg.create_auto_id_created_trg_prc('TASK');
+  audit_util_pkg.create_auto_id_created_trg_prc('LABELS');
+  audit_util_pkg.create_auto_id_created_trg_prc('TASK_ASSIGNMENT');
+  audit_util_pkg.create_auto_id_created_trg_prc('APP_COMMENT');
+  audit_util_pkg.create_auto_id_created_trg_prc('INTEGRATION');
+  audit_util_pkg.create_auto_id_created_trg_prc('COMMIT_LINK');
+  audit_util_pkg.create_auto_id_created_trg_prc('PR_LINK');
+  audit_util_pkg.create_auto_id_created_trg_prc('ATTACHMENT');
+  audit_util_pkg.create_auto_id_created_trg_prc('APP_ACTIVITY');
 END;
 /
 
 -- _h history táblák létrehozása
 BEGIN
-  create_historisation_for_table('APP_PROJECT');
-  create_historisation_for_table('TASK');
-  create_historisation_for_table('TASK_STATUS');
-  create_historisation_for_table('task_assignment');
-  create_historisation_for_table('SPRINT');
-  create_historisation_for_table('APP_COMMENT');
-  create_historisation_for_table('BOARD');
-  create_historisation_for_table('COLUMN_DEF');
-  create_historisation_for_table('PROJECT_MEMBER');
-  create_historisation_for_table('APP_USER_ROLE');
+  audit_util_pkg.create_historisation_for_table('APP_PROJECT');
+  audit_util_pkg.create_historisation_for_table('TASK');
+  audit_util_pkg.create_historisation_for_table('TASK_STATUS');
+  audit_util_pkg.create_historisation_for_table('task_assignment');
+  audit_util_pkg.create_historisation_for_table('SPRINT');
+  audit_util_pkg.create_historisation_for_table('APP_COMMENT');
+  audit_util_pkg.create_historisation_for_table('BOARD');
+  audit_util_pkg.create_historisation_for_table('COLUMN_DEF');
+  audit_util_pkg.create_historisation_for_table('PROJECT_MEMBER');
+  audit_util_pkg.create_historisation_for_table('APP_USER_ROLE');
+  
+  -- Első Tanács kérés utáni: Észrevettem hogy még lehetne több táblát historizációval ellátni.
+  audit_util_pkg.create_historisation_for_table('APP_USER');
+  audit_util_pkg.create_historisation_for_table('APP_ROLE');
+  audit_util_pkg.create_historisation_for_table('LABELS');
+  audit_util_pkg.create_historisation_for_table('LABEL_TASK');
+  audit_util_pkg.create_historisation_for_table('ATTACHMENT');
+  audit_util_pkg.create_historisation_for_table('INTEGRATION');
+  audit_util_pkg.create_historisation_for_table('COMMIT_LINK');
+  audit_util_pkg.create_historisation_for_table('PR_LINK');
 END;
 /
+
 -- automatikus project key generálás taskokhoz
 
-CREATE OR REPLACE FUNCTION build_next_task_key_fnc(p_project_id IN NUMBER)
-  RETURN VARCHAR2 IS
-  l_proj_key app_project.proj_key%TYPE;
-  l_seq_name app_project.task_seq_name%TYPE;
-  l_next_num NUMBER;
-BEGIN
-  ------------------------------------------------------------------
-  -- Projekt kulcs és a hozzá tartozó sequence név beolvasása
-  ------------------------------------------------------------------
-  SELECT proj_key
-        ,task_seq_name
-    INTO l_proj_key
-        ,l_seq_name
-    FROM app_project
-   WHERE id = p_project_id;
+CREATE OR REPLACE PACKAGE util_pkg IS
 
-  ------------------------------------------------------------------
-  -- Ha még nincs sequence név eltárolva, generáljuk és hozzuk létre
-  ------------------------------------------------------------------
-  IF l_seq_name IS NULL
-  THEN
-    l_seq_name := build_task_seq_name_fnc(l_proj_key);
-  
-    -- próbáljuk létrehozni a sequence-et; ha már létezik, nem baj
-    BEGIN
-      EXECUTE IMMEDIATE 'CREATE SEQUENCE ' || l_seq_name ||
-                        ' START WITH 1 INCREMENT BY 1';
-    END;
-  
-    UPDATE app_project
-       SET task_seq_name = l_seq_name
-     WHERE id = p_project_id;
-  END IF;
+  --------------------------------------------------------------------
+  -- Task sequence név generálása PROJ_KEY alapján
+  --------------------------------------------------------------------
+  FUNCTION build_task_seq_name_fnc(p_proj_key IN VARCHAR2)
+    RETURN VARCHAR2;
 
-  ------------------------------------------------------------------
-  -- Következő sorszám lekérése a sequence-ből
-  ------------------------------------------------------------------
-  EXECUTE IMMEDIATE 'SELECT ' || l_seq_name || '.NEXTVAL FROM dual'
-    INTO l_next_num;
+  --------------------------------------------------------------------
+  -- Következő task_key generálása projekt szinten
+  --------------------------------------------------------------------
+  FUNCTION build_next_task_key_fnc(p_project_id IN NUMBER)
+    RETURN VARCHAR2;
 
-  RETURN l_proj_key || '-' || lpad(l_next_num, 4, '0');
-END;
+END util_pkg;
 /
 
-CREATE OR REPLACE FUNCTION build_task_seq_name_fnc(p_proj_key IN VARCHAR2)
-  RETURN VARCHAR2 IS
-  l_base_name VARCHAR2(30);
-  l_seq_name  VARCHAR2(30);
-BEGIN
-  l_base_name := upper(p_proj_key);
+CREATE OR REPLACE PACKAGE BODY util_pkg IS
 
-  -- csak A–Z, 0–9, egyébként cseréljük
-  l_base_name := regexp_replace(l_base_name, '[^A-Z0-9_]', '_');
+  FUNCTION build_task_seq_name_fnc(p_proj_key IN VARCHAR2) RETURN VARCHAR2 IS
+    l_base_name VARCHAR2(30);
+    l_seq_name  VARCHAR2(30);
+  BEGIN
+    l_base_name := upper(p_proj_key);
+  
+    -- csak A–Z, 0–9, egyébként cseréljük
+    l_base_name := regexp_replace(l_base_name, '[^A-Z0-9_]', '_');
+  
+    -- ha számmal kezdődne, tegyünk elé 'P_'
+    IF regexp_like(l_base_name, '^[0-9]')
+    THEN
+      l_base_name := 'P_' || l_base_name;
+    END IF;
+  
+    -- név: <base>_SEQ, max 30 karakter
+    l_seq_name := substr(l_base_name || '_SEQ', 1, 30);
+  
+    RETURN l_seq_name;
+  END build_task_seq_name_fnc;
 
-  -- ha számmal kezdődne, tegyünk elé 'P_'
-  IF regexp_like(l_base_name, '^[0-9]')
-  THEN
-    l_base_name := 'P_' || l_base_name;
-  END IF;
-
-  -- név: <base>_SEQ, max 30 karakter
-  l_seq_name := substr(l_base_name || '_SEQ', 1, 30);
-
-  RETURN l_seq_name;
-END;
+  FUNCTION build_next_task_key_fnc(p_project_id IN NUMBER) RETURN VARCHAR2 IS
+    l_proj_key app_project.proj_key%TYPE;
+    l_seq_name app_project.task_seq_name%TYPE;
+    l_next_num NUMBER;
+  BEGIN
+    ------------------------------------------------------------------
+    -- Projekt kulcs és a hozzá tartozó sequence név beolvasása
+    ------------------------------------------------------------------
+    SELECT proj_key
+          ,task_seq_name
+      INTO l_proj_key
+          ,l_seq_name
+      FROM app_project
+     WHERE id = p_project_id;
+  
+    ------------------------------------------------------------------
+    -- Ha még nincs sequence név eltárolva, generáljuk és hozzuk létre
+    ------------------------------------------------------------------
+    IF l_seq_name IS NULL
+    THEN
+      l_seq_name := build_task_seq_name_fnc(l_proj_key);
+    
+      -- próbáljuk létrehozni a sequence-et; ha már létezik, nem baj
+      BEGIN
+        EXECUTE IMMEDIATE 'CREATE SEQUENCE ' || l_seq_name ||
+                          ' START WITH 1 INCREMENT BY 1';
+      END;
+    
+      UPDATE app_project
+         SET task_seq_name = l_seq_name
+       WHERE id = p_project_id;
+    END IF;
+  
+    ------------------------------------------------------------------
+    -- Következő sorszám lekérése a sequence-ből
+    ------------------------------------------------------------------
+    EXECUTE IMMEDIATE 'SELECT ' || l_seq_name || '.NEXTVAL FROM dual'
+      INTO l_next_num;
+  
+    RETURN l_proj_key || '-' || lpad(l_next_num, 4, '0');
+  END build_next_task_key_fnc;
+  
+END util_pkg;
 /
 
 CREATE OR REPLACE TRIGGER task_auto_key_trg
@@ -1039,7 +1083,7 @@ CREATE OR REPLACE TRIGGER task_auto_key_trg
   FOR EACH ROW
 BEGIN
   IF :NEW.task_key IS NULL THEN
-    :NEW.task_key := build_next_task_key_fnc(:NEW.project_id);
+    :NEW.task_key := util_pkg.build_next_task_key_fnc(:NEW.project_id);
   END IF;
 END task_auto_key_trg;
 /
@@ -1761,7 +1805,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
     ----------------------------------------------------------------
     -- Sequence név generálása a PROJ_KEY alapján
     ----------------------------------------------------------------
-    l_seq_name := build_task_seq_name_fnc(p_proj_key);
+    l_seq_name := util_pkg.build_task_seq_name_fnc(p_proj_key);
   
     ----------------------------------------------------------------
     -- Projekt beszúrása, task_seq_name eltárolása
@@ -2591,7 +2635,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     ------------------------------------------------------------------
     -- 1. Task key generálása projekt alapján (PMA-0001, DEVOPS-0001…)
     ------------------------------------------------------------------
-    l_task_key := build_next_task_key_fnc(p_project_id);
+    l_task_key := util_pkg.build_next_task_key_fnc(p_project_id);
   
     ------------------------------------------------------------------
     -- 2. POSITION meghatározása az oszlopon belül
@@ -3054,39 +3098,57 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
 
 END task_mgmt_pkg;
 /
+-- ABXD
+CREATE OR REPLACE PACKAGE task_status_mgmt_pkg IS
+  -- ELső Visszajelzés utáni...
 
-CREATE OR REPLACE PROCEDURE create_task_status_prc(p_code        IN task_status.code%TYPE
-                                                  ,p_name        IN task_status.name%TYPE
-                                                  ,p_description IN task_status.description%TYPE DEFAULT NULL
-                                                  ,p_is_final    IN task_status.is_final%TYPE
-                                                  ,p_position    IN task_status.position%TYPE
-                                                  ,p_status_id   OUT task_status.id%TYPE) IS
-BEGIN
-  INSERT INTO task_status
-    (code
-    ,NAME
-    ,description
-    ,is_final
-    ,position)
-  VALUES
-    (p_code
-    ,p_name
-    ,p_description
-    ,p_is_final
-    ,p_position)
-  RETURNING id INTO p_status_id;
+  PROCEDURE create_task_status_prc(p_code        IN task_status.code%TYPE
+                                  ,p_name        IN task_status.name%TYPE
+                                  ,p_description IN task_status.description%TYPE
+                                  ,p_is_final    IN task_status.is_final%TYPE
+                                  ,p_position    IN task_status.position%TYPE
+                                  ,p_status_id   OUT task_status.id%TYPE);
 
-EXCEPTION
-  WHEN dup_val_on_index THEN
-    raise_application_error(-20060,
-                            'create_task_status_prc: status code "' ||
-                            p_code || '" már létezik.');
-  WHEN OTHERS THEN
-    raise_application_error(-20061,
-                            'create_task_status_prc hiba code = "' ||
-                            p_code || '": ' || SQLERRM);
-END;
+END task_status_mgmt_pkg;
 /
+CREATE OR REPLACE PACKAGE BODY task_status_mgmt_pkg IS
+  -- ELső Visszajelzés utáni...
+
+  PROCEDURE create_task_status_prc(p_code        IN task_status.code%TYPE
+                                  ,p_name        IN task_status.name%TYPE
+                                  ,p_description IN task_status.description%TYPE
+                                  ,p_is_final    IN task_status.is_final%TYPE
+                                  ,p_position    IN task_status.position%TYPE
+                                  ,p_status_id   OUT task_status.id%TYPE) IS
+  BEGIN
+    INSERT INTO task_status
+      (code
+      ,NAME
+      ,description
+      ,is_final
+      ,position)
+    VALUES
+      (p_code
+      ,p_name
+      ,p_description
+      ,p_is_final
+      ,p_position)
+    RETURNING id INTO p_status_id;
+  
+  EXCEPTION
+    WHEN dup_val_on_index THEN
+      raise_application_error(-20060,
+                              'create_task_status_prc: status code "' ||
+                              p_code || '" már létezik.');
+    WHEN OTHERS THEN
+      raise_application_error(-20061,
+                              'create_task_status_prc hiba code = "' ||
+                              p_code || '": ' || SQLERRM);
+  END;
+
+END task_status_mgmt_pkg;
+/
+
 
 
 CREATE OR REPLACE PACKAGE label_mgmt_pkg IS
@@ -4400,40 +4462,40 @@ BEGIN
   --------------------------------------------------------------------
   -- 1. TASK STATUSOK
   --------------------------------------------------------------------
-  create_task_status_prc(p_code        => 'BACKLOG',
-                         p_name        => 'Backlog',
-                         p_description => 'Ötletek, még nem tervezett feladatok.',
-                         p_is_final    => 0,
-                         p_position    => 1,
-                         p_status_id   => v_backlog_id);
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'BACKLOG',
+                                              p_name        => 'Backlog',
+                                              p_description => 'Ötletek, még nem tervezett feladatok.',
+                                              p_is_final    => 0,
+                                              p_position    => 1,
+                                              p_status_id   => v_backlog_id);
 
-  create_task_status_prc(p_code        => 'TODO',
-                         p_name        => 'To Do',
-                         p_description => 'Következő sprintben megvalósítandó feladatok.',
-                         p_is_final    => 0,
-                         p_position    => 2,
-                         p_status_id   => v_todo_id);
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'TODO',
+                                              p_name        => 'To Do',
+                                              p_description => 'Következő sprintben megvalósítandó feladatok.',
+                                              p_is_final    => 0,
+                                              p_position    => 2,
+                                              p_status_id   => v_todo_id);
 
-  create_task_status_prc(p_code        => 'IN_PROGRESS',
-                         p_name        => 'In Progress',
-                         p_description => 'Folyamatban lévő munka.',
-                         p_is_final    => 0,
-                         p_position    => 3,
-                         p_status_id   => v_inprogress_id);
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'IN_PROGRESS'
+                                              p_name        => 'In Progress',
+                                              p_description => 'Folyamatban lévő munka.',
+                                              p_is_final    => 0,
+                                              p_position    => 3,
+                                              p_status_id   => v_inprogress_id);
 
-  create_task_status_prc(p_code        => 'REVIEW',
-                         p_name        => 'Review',
-                         p_description => 'Kód review / tesztelés alatt.',
-                         p_is_final    => 0,
-                         p_position    => 4,
-                         p_status_id   => v_review_id);
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'REVIEW',
+                                              p_name        => 'Review',
+                                              p_description => 'Kód review / tesztelés alatt.',
+                                              p_is_final    => 0,
+                                              p_position    => 4,
+                                              p_status_id   => v_review_id);
 
-  create_task_status_prc(p_code        => 'DONE',
-                         p_name        => 'Done',
-                         p_description => 'Befejezett, lezárt feladatok.',
-                         p_is_final    => 1,
-                         p_position    => 5,
-                         p_status_id   => v_done_id);
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'DONE',
+                                              p_name        => 'Done',
+                                              p_description => 'Befejezett, lezárt feladatok.',
+                                              p_is_final    => 1,
+                                              p_position    => 5,
+                                              p_status_id   => v_done_id);
 
   --------------------------------------------------------------------
   -- 2. PROJEKT ID-K

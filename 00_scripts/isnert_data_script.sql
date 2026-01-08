@@ -1,5 +1,5 @@
-DECLARE
-  -- szerepkör ID-k
+ï»¿DECLARE
+  -- szerepkÃ¶r ID-k
   v_admin_role_id         app_role.id%TYPE;
   v_project_owner_role_id app_role.id%TYPE;
   v_developer_role_id     app_role.id%TYPE;
@@ -10,43 +10,43 @@ DECLARE
   v_dev_user_id   app_user.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- SZEREPKÖRÖK
+  -- SZEREPKÃ–RÃ–K
   --------------------------------------------------------------------
   auth_mgmt_pkg.create_role_prc(p_role_name   => 'ADMIN',
-                                p_description => 'Rendszeradminisztrátor',
+                                p_description => 'RendszeradminisztrÃ¡tor',
                                 p_role_id     => v_admin_role_id);
 
   auth_mgmt_pkg.create_role_prc(p_role_name   => 'PROJECT_OWNER',
-                                p_description => 'Projekt tulajdonos / vezetõ',
+                                p_description => 'Projekt tulajdonos / vezetÅ‘',
                                 p_role_id     => v_project_owner_role_id);
 
   auth_mgmt_pkg.create_role_prc(p_role_name   => 'DEVELOPER',
-                                p_description => 'Fejlesztõ csapattag',
+                                p_description => 'FejlesztÅ‘ csapattag',
                                 p_role_id     => v_developer_role_id);
 
   --------------------------------------------------------------------
-  -- FELHASZNÁLÓK
+  -- FELHASZNÃLÃ“K
   --------------------------------------------------------------------
   auth_mgmt_pkg.create_user_prc(p_email         => 'admin@example.com',
-                                p_display_name  => 'Admin Felhasználó',
+                                p_display_name  => 'Admin FelhasznÃ¡lÃ³',
                                 p_password_hash => 'hashed_admin_pw',
                                 p_is_active     => 1,
                                 p_user_id       => v_admin_user_id);
 
   auth_mgmt_pkg.create_user_prc(p_email         => 'peter@example.com',
-                                p_display_name  => 'Trunk Péter',
+                                p_display_name  => 'Trunk PÃ©ter',
                                 p_password_hash => 'hashed_peter_pw',
                                 p_is_active     => 1,
                                 p_user_id       => v_peter_user_id);
 
   auth_mgmt_pkg.create_user_prc(p_email         => 'dev@example.com',
-                                p_display_name  => 'Fejlesztõ Béla',
+                                p_display_name  => 'FejlesztÅ‘ BÃ©la',
                                 p_password_hash => 'hashed_dev_pw',
                                 p_is_active     => 0,
                                 p_user_id       => v_dev_user_id);
 
   --------------------------------------------------------------------
-  -- FELHASZNÁLÓ–SZEREPKÖR hozzárendelések
+  -- FELHASZNÃLÃ“â€“SZEREPKÃ–R hozzÃ¡rendelÃ©sek
   --------------------------------------------------------------------
   -- admin: ADMIN
   auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_admin_user_id,
@@ -56,15 +56,15 @@ BEGIN
   auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_admin_user_id,
                                         p_role_id => v_project_owner_role_id);
 
-  -- Péter: PROJECT_OWNER
+  -- PÃ©ter: PROJECT_OWNER
   auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_peter_user_id,
                                         p_role_id => v_project_owner_role_id);
 
-  -- Péter: DEVELOPER
+  -- PÃ©ter: DEVELOPER
   auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_peter_user_id,
                                         p_role_id => v_developer_role_id);
 
-  -- Dev Béla: DEVELOPER
+  -- Dev BÃ©la: DEVELOPER
   auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_dev_user_id,
                                         p_role_id => v_developer_role_id);
 END;
@@ -79,7 +79,7 @@ DECLARE
   v_dev_id   app_user.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- FELHASZNÁLÓ ID-K BETÖLTÉSE
+  -- FELHASZNÃLÃ“ ID-K BETÃ–LTÃ‰SE
   --------------------------------------------------------------------
   SELECT id
     INTO v_admin_id
@@ -92,39 +92,39 @@ BEGIN
   SELECT id INTO v_dev_id FROM app_user WHERE email = 'dev@example.com';
 
   --------------------------------------------------------------------
-  -- PROJEKTEK LÉTREHOZÁSA
+  -- PROJEKTEK LÃ‰TREHOZÃSA
   --------------------------------------------------------------------
   project_mgmt_pkg.create_project_prc(p_project_name => 'PMA - Projektmenedzsment app',
                                       p_proj_key     => 'PMA',
-                                      p_description  => 'Saját hosztolású projektmenedzsment alkalmazás (kanban + statisztikák + Git integráció).',
+                                      p_description  => 'SajÃ¡t hosztolÃ¡sÃº projektmenedzsment alkalmazÃ¡s (kanban + statisztikÃ¡k + Git integrÃ¡ciÃ³).',
                                       p_owner_id     => v_admin_id,
                                       p_project_id   => v_pma_id);
 
   project_mgmt_pkg.create_project_prc(p_project_name => 'DEVOPS - Demo projekt',
                                       p_proj_key     => 'DEVOPS',
-                                      p_description  => 'Demo projekt DevOps pipeline-ok és issue tracking kipróbálásához.',
+                                      p_description  => 'Demo projekt DevOps pipeline-ok Ã©s issue tracking kiprÃ³bÃ¡lÃ¡sÃ¡hoz.',
                                       p_owner_id     => v_peter_id,
                                       p_project_id   => v_devops_id);
 
   --------------------------------------------------------------------
-  -- PROJEKT TAGSÁGOK (PROJECT_MEMBER)
+  -- PROJEKT TAGSÃGOK (PROJECT_MEMBER)
   --------------------------------------------------------------------
   -- PMA: admin = OWNER
   project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_pma_id,
                                               p_user_id      => v_admin_id,
                                               p_project_role => 'OWNER');
 
-  -- PMA: Péter = DEVELOPER
+  -- PMA: PÃ©ter = DEVELOPER
   project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_pma_id,
                                               p_user_id      => v_peter_id,
                                               p_project_role => 'DEVELOPER');
 
-  -- PMA: Dev Béla = DEVELOPER
+  -- PMA: Dev BÃ©la = DEVELOPER
   project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_pma_id,
                                               p_user_id      => v_dev_id,
                                               p_project_role => 'DEVELOPER');
 
-  -- DEVOPS: Péter = OWNER
+  -- DEVOPS: PÃ©ter = OWNER
   project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_devops_id,
                                               p_user_id      => v_peter_id,
                                               p_project_role => 'OWNER');
@@ -136,7 +136,7 @@ DECLARE
   v_pma_id    app_project.id%TYPE;
   v_devops_id app_project.id%TYPE;
 
-  -- státusz ID-k
+  -- stÃ¡tusz ID-k
   v_backlog_id    task_status.id%TYPE;
   v_todo_id       task_status.id%TYPE;
   v_inprogress_id task_status.id%TYPE;
@@ -156,40 +156,40 @@ BEGIN
   --------------------------------------------------------------------
   -- 1. TASK STATUSOK
   --------------------------------------------------------------------
-  create_task_status_prc(p_code        => 'BACKLOG',
-                         p_name        => 'Backlog',
-                         p_description => 'Ötletek, még nem tervezett feladatok.',
-                         p_is_final    => 0,
-                         p_position    => 1,
-                         p_status_id   => v_backlog_id);
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'BACKLOG',
+                                              p_name        => 'Backlog',
+                                              p_description => 'Ã–tletek, mÃ©g nem tervezett feladatok.',
+                                              p_is_final    => 0,
+                                              p_position    => 1,
+                                              p_status_id   => v_backlog_id);
 
-  create_task_status_prc(p_code        => 'TODO',
-                         p_name        => 'To Do',
-                         p_description => 'Következõ sprintben megvalósítandó feladatok.',
-                         p_is_final    => 0,
-                         p_position    => 2,
-                         p_status_id   => v_todo_id);
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'TODO',
+                                              p_name        => 'To Do',
+                                              p_description => 'KÃ¶vetkezÅ‘ sprintben megvalÃ³sÃ­tandÃ³ feladatok.',
+                                              p_is_final    => 0,
+                                              p_position    => 2,
+                                              p_status_id   => v_todo_id);
 
-  create_task_status_prc(p_code        => 'IN_PROGRESS',
-                         p_name        => 'In Progress',
-                         p_description => 'Folyamatban lévõ munka.',
-                         p_is_final    => 0,
-                         p_position    => 3,
-                         p_status_id   => v_inprogress_id);
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'IN_PROGRESS',
+                                              p_name        => 'In Progress',
+                                              p_description => 'Folyamatban lÃ©vÅ‘ munka.',
+                                              p_is_final    => 0,
+                                              p_position    => 3,
+                                              p_status_id   => v_inprogress_id);
 
-  create_task_status_prc(p_code        => 'REVIEW',
-                         p_name        => 'Review',
-                         p_description => 'Kód review / tesztelés alatt.',
-                         p_is_final    => 0,
-                         p_position    => 4,
-                         p_status_id   => v_review_id);
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'REVIEW',
+                                              p_name        => 'Review',
+                                              p_description => 'KÃ³d review / tesztelÃ©s alatt.',
+                                              p_is_final    => 0,
+                                              p_position    => 4,
+                                              p_status_id   => v_review_id);
 
-  create_task_status_prc(p_code        => 'DONE',
-                         p_name        => 'Done',
-                         p_description => 'Befejezett, lezárt feladatok.',
-                         p_is_final    => 1,
-                         p_position    => 5,
-                         p_status_id   => v_done_id);
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'DONE',
+                                              p_name        => 'Done',
+                                              p_description => 'Befejezett, lezÃ¡rt feladatok.',
+                                              p_is_final    => 1,
+                                              p_position    => 5,
+                                              p_status_id   => v_done_id);
 
   --------------------------------------------------------------------
   -- 2. PROJEKT ID-K
@@ -213,7 +213,7 @@ BEGIN
                                   p_board_id   => v_devops_board_id);
 
   --------------------------------------------------------------------
-  -- 4. OSZLOPOK (column_mgmt_pkg) – PMA Main Board
+  -- 4. OSZLOPOK (column_mgmt_pkg) â€“ PMA Main Board
   --------------------------------------------------------------------
   -- BACKLOG
   column_mgmt_pkg.create_column_prc(p_board_id    => v_pma_board_id,
@@ -276,7 +276,7 @@ DECLARE
   v_task3_id task.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- 1. PMA projekt, board, oszlopok, user-ek, státuszok betöltése
+  -- 1. PMA projekt, board, oszlopok, user-ek, stÃ¡tuszok betÃ¶ltÃ©se
   --------------------------------------------------------------------
   SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
 
@@ -322,56 +322,56 @@ BEGIN
   SELECT id INTO v_status_done_id FROM task_status WHERE code = 'DONE';
 
   --------------------------------------------------------------------
-  -- 2. Sprint 1 létrehozása – PMA
+  -- 2. Sprint 1 lÃ©trehozÃ¡sa â€“ PMA
   --------------------------------------------------------------------
   sprint_mgmt_pkg.create_sprint_prc(p_project_id  => v_pma_id,
                                     p_board_id    => v_pma_board_id,
                                     p_sprint_name => 'Sprint 1',
-                                    p_goal        => 'Alap adatbázis és backend váz kialakítása.',
+                                    p_goal        => 'Alap adatbÃ¡zis Ã©s backend vÃ¡z kialakÃ­tÃ¡sa.',
                                     p_start_date  => DATE '2025-01-01',
                                     p_end_date    => DATE '2025-01-14',
                                     p_state       => 'ACTIVE',
                                     p_sprint_id   => v_sprint1_id);
 
   --------------------------------------------------------------------
-  -- 3. TASKOK – PMA
+  -- 3. TASKOK â€“ PMA
   --------------------------------------------------------------------
-  -- 1. task – TODO: "DB séma kialakítása"
+  -- 1. task â€“ TODO: "DB sÃ©ma kialakÃ­tÃ¡sa"
   task_mgmt_pkg.create_task_prc(p_project_id    => v_pma_id,
                                 p_board_id      => v_pma_board_id,
                                 p_column_id     => v_col_todo_id,
                                 p_sprint_id     => v_sprint1_id,
                                 p_created_by    => v_peter_id,
-                                p_title         => 'DB séma kialakítása',
-                                p_description   => 'Az alap PMA adatbázis táblák és kapcsolatok létrehozása.',
+                                p_title         => 'DB sÃ©ma kialakÃ­tÃ¡sa',
+                                p_description   => 'Az alap PMA adatbÃ¡zis tÃ¡blÃ¡k Ã©s kapcsolatok lÃ©trehozÃ¡sa.',
                                 p_status_id     => v_status_todo_id,
                                 p_priority      => 'HIGH',
                                 p_estimated_min => 240,
                                 p_due_date      => DATE '2025-01-07',
                                 p_task_id       => v_task1_id);
 
-  -- 2. task – IN_PROGRESS: "Historizáció implementálása"
+  -- 2. task â€“ IN_PROGRESS: "HistorizÃ¡ciÃ³ implementÃ¡lÃ¡sa"
   task_mgmt_pkg.create_task_prc(p_project_id    => v_pma_id,
                                 p_board_id      => v_pma_board_id,
                                 p_column_id     => v_col_inprog_id,
                                 p_sprint_id     => v_sprint1_id,
                                 p_created_by    => v_dev_id,
-                                p_title         => 'Historizáció implementálása',
-                                p_description   => 'DML flag, version, history tábla és triggerek beépítése a kritikus táblákra.',
+                                p_title         => 'HistorizÃ¡ciÃ³ implementÃ¡lÃ¡sa',
+                                p_description   => 'DML flag, version, history tÃ¡bla Ã©s triggerek beÃ©pÃ­tÃ©se a kritikus tÃ¡blÃ¡kra.',
                                 p_status_id     => v_status_inprog_id,
                                 p_priority      => 'MEDIUM',
                                 p_estimated_min => 180,
                                 p_due_date      => DATE '2025-01-10',
                                 p_task_id       => v_task2_id);
 
-  -- 3. task – DONE: "Alap felhasználók felvétele"
+  -- 3. task â€“ DONE: "Alap felhasznÃ¡lÃ³k felvÃ©tele"
   task_mgmt_pkg.create_task_prc(p_project_id    => v_pma_id,
                                 p_board_id      => v_pma_board_id,
                                 p_column_id     => v_col_done_id,
                                 p_sprint_id     => v_sprint1_id,
                                 p_created_by    => v_admin_id,
-                                p_title         => 'Alap felhasználók felvétele',
-                                p_description   => 'Admin és fejlesztõ felhasználók létrehozása teszteléshez.',
+                                p_title         => 'Alap felhasznÃ¡lÃ³k felvÃ©tele',
+                                p_description   => 'Admin Ã©s fejlesztÅ‘ felhasznÃ¡lÃ³k lÃ©trehozÃ¡sa tesztelÃ©shez.',
                                 p_status_id     => v_status_done_id,
                                 p_priority      => 'LOW',
                                 p_estimated_min => 60,
@@ -388,7 +388,7 @@ BEGIN
    WHERE id = v_task3_id;
 
   --------------------------------------------------------------------
-  -- 4. TASK ASSIGNMENT – hozzárendelések
+  -- 4. TASK ASSIGNMENT â€“ hozzÃ¡rendelÃ©sek
   --------------------------------------------------------------------
   task_mgmt_pkg.assign_user_to_task_prc(p_task_id => v_task1_id,
                                         p_user_id => v_peter_id);
@@ -424,24 +424,24 @@ DECLARE
   v_comment2_id app_comment.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- 1. PMA projekt, taskok és userek betöltése
+  -- 1. PMA projekt, taskok Ã©s userek betÃ¶ltÃ©se
   --------------------------------------------------------------------
   SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
 
   SELECT id
     INTO v_task_db_schema_id
     FROM task
-   WHERE title = 'DB séma kialakítása';
+   WHERE title = 'DB sÃ©ma kialakÃ­tÃ¡sa';
 
   SELECT id
     INTO v_task_hist_id
     FROM task
-   WHERE title = 'Historizáció implementálása';
+   WHERE title = 'HistorizÃ¡ciÃ³ implementÃ¡lÃ¡sa';
 
   SELECT id
     INTO v_task_users_id
     FROM task
-   WHERE title = 'Alap felhasználók felvétele';
+   WHERE title = 'Alap felhasznÃ¡lÃ³k felvÃ©tele';
 
   SELECT id
     INTO v_admin_id
@@ -453,7 +453,7 @@ BEGIN
    WHERE email = 'peter@example.com';
 
   --------------------------------------------------------------------
-  -- 2. LABELS – PMA projekthez
+  -- 2. LABELS â€“ PMA projekthez
   --------------------------------------------------------------------
   label_mgmt_pkg.create_label_prc(p_project_id => v_pma_id,
                                   p_label_name => 'backend',
@@ -471,31 +471,31 @@ BEGIN
                                   p_label_id   => v_label_bug_id);
 
   --------------------------------------------------------------------
-  -- 3. LABEL_TASK – feladatok címkézése
+  -- 3. LABEL_TASK â€“ feladatok cÃ­mkÃ©zÃ©se
   --------------------------------------------------------------------
-  -- DB séma kialakítása -> backend
+  -- DB sÃ©ma kialakÃ­tÃ¡sa -> backend
   label_mgmt_pkg.assign_label_to_task_prc(p_task_id  => v_task_db_schema_id,
                                           p_label_id => v_label_backend_id);
 
-  -- Historizáció implementálása -> backend
+  -- HistorizÃ¡ciÃ³ implementÃ¡lÃ¡sa -> backend
   label_mgmt_pkg.assign_label_to_task_prc(p_task_id  => v_task_hist_id,
                                           p_label_id => v_label_backend_id);
 
-  -- Alap felhasználók felvétele -> bug
+  -- Alap felhasznÃ¡lÃ³k felvÃ©tele -> bug
   label_mgmt_pkg.assign_label_to_task_prc(p_task_id  => v_task_users_id,
                                           p_label_id => v_label_bug_id);
 
   --------------------------------------------------------------------
-  -- 4. KOMMENTEK – app_comment
+  -- 4. KOMMENTEK â€“ app_comment
   --------------------------------------------------------------------
   comment_mgmt_pkg.create_comment_prc(p_task_id      => v_task_db_schema_id,
                                       p_user_id      => v_admin_id,
-                                      p_comment_body => 'Kérlek nézd át a constraint-eket és a history triggert is.',
+                                      p_comment_body => 'KÃ©rlek nÃ©zd Ã¡t a constraint-eket Ã©s a history triggert is.',
                                       p_comment_id   => v_comment1_id);
 
   comment_mgmt_pkg.create_comment_prc(p_task_id      => v_task_hist_id,
                                       p_user_id      => v_peter_id,
-                                      p_comment_body => 'Szerintem a D jelölés DELETE-nél jól mûködik, nézzük meg még egyszer a logot.',
+                                      p_comment_body => 'Szerintem a D jelÃ¶lÃ©s DELETE-nÃ©l jÃ³l mÅ±kÃ¶dik, nÃ©zzÃ¼k meg mÃ©g egyszer a logot.',
                                       p_comment_id   => v_comment2_id);
 END;
 /
@@ -511,19 +511,19 @@ DECLARE
   v_attachment_id  attachment.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- 1. PMA projekt, taskok, user betöltése
+  -- 1. PMA projekt, taskok, user betÃ¶ltÃ©se
   --------------------------------------------------------------------
   SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
 
   SELECT id
     INTO v_hist_task_id
     FROM task
-   WHERE title = 'Historizáció implementálása';
+   WHERE title = 'HistorizÃ¡ciÃ³ implementÃ¡lÃ¡sa';
 
   SELECT id
     INTO v_db_task_id
     FROM task
-   WHERE title = 'DB séma kialakítása';
+   WHERE title = 'DB sÃ©ma kialakÃ­tÃ¡sa';
 
   SELECT id
     INTO v_peter_id
@@ -531,7 +531,7 @@ BEGIN
    WHERE email = 'peter@example.com';
 
   --------------------------------------------------------------------
-  -- 2. INTEGRÁCIÓ – GITHUB
+  -- 2. INTEGRÃCIÃ“ â€“ GITHUB
   --------------------------------------------------------------------
   git_integration_pkg.create_integration_prc(p_project_id     => v_pma_id,
                                              p_provider       => 'GITHUB',

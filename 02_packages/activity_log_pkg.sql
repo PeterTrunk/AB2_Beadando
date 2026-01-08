@@ -1,4 +1,4 @@
-CREATE OR REPLACE PACKAGE activity_log_pkg IS
+ï»¿CREATE OR REPLACE PACKAGE activity_log_pkg IS
 
   PROCEDURE log_activity_prc(p_project_id  IN app_activity.project_id%TYPE
                             ,p_actor_id    IN app_activity.actor_id%TYPE
@@ -9,7 +9,7 @@ CREATE OR REPLACE PACKAGE activity_log_pkg IS
                             ,p_activity_id OUT app_activity.id%TYPE);
 
   ------------------------------------------------------------------
-  -- Procedúrák tipikus eseményekre
+  -- ProcedÃºrÃ¡k tipikus esemÃ©nyekre
   ------------------------------------------------------------------
 
   PROCEDURE log_project_created_prc(p_project_id  IN app_activity.project_id%TYPE

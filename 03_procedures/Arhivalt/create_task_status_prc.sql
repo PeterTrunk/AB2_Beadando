@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE create_task_status_prc(p_code        IN task_status.code%TYPE
+ï»¿CREATE OR REPLACE PROCEDURE create_task_status_prc(p_code        IN task_status.code%TYPE
                                                   ,p_name        IN task_status.name%TYPE
                                                   ,p_description IN task_status.description%TYPE DEFAULT NULL
                                                   ,p_is_final    IN task_status.is_final%TYPE
@@ -23,7 +23,7 @@ EXCEPTION
   WHEN dup_val_on_index THEN
     raise_application_error(-20060,
                             'create_task_status_prc: status code "' ||
-                            p_code || '" már létezik.');
+                            p_code || '" mÃ¡r lÃ©tezik.');
   WHEN OTHERS THEN
     raise_application_error(-20061,
                             'create_task_status_prc hiba code = "' ||

@@ -1,5 +1,5 @@
-DROP TABLE test_table;
-DROP TABLE test_table_h;
+﻿--TRUNCATE TABLE test_table;
+--TRUNCATE TABLE test_table_h;
 INSERT INTO test_table
   (id
   ,NAME)

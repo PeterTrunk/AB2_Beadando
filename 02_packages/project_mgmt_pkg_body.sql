@@ -1,4 +1,4 @@
-CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
+ï»¿CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
 
   PROCEDURE create_project_prc(p_project_name IN app_project.project_name%TYPE
                               ,p_proj_key     IN app_project.proj_key%TYPE
@@ -10,7 +10,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
     l_activity_id  app_activity.id%TYPE;
   BEGIN
     ----------------------------------------------------------------
-    -- Owner user létezésének ellenõrzése
+    -- Owner user lÃ©tezÃ©sÃ©nek ellenÅ‘rzÃ©se
     ----------------------------------------------------------------
     SELECT COUNT(*)
       INTO l_owner_exists
@@ -22,7 +22,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
                             p_procedure_name => 'create_project_prc',
                             p_error_code     => -20340,
-                            p_error_msg      => 'Owner user nem létezik.',
+                            p_error_msg      => 'Owner user nem lÃ©tezik.',
                             p_context        => 'owner_id=' || p_owner_id ||
                                                 '; project_name=' ||
                                                 p_project_name,
@@ -31,12 +31,12 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
     END IF;
   
     ----------------------------------------------------------------
-    -- Sequence név generálása a PROJ_KEY alapján
+    -- Sequence nÃ©v generÃ¡lÃ¡sa a PROJ_KEY alapjÃ¡n
     ----------------------------------------------------------------
-    l_seq_name := build_task_seq_name_fnc(p_proj_key);
+    l_seq_name := util_pkg.build_task_seq_name_fnc(p_proj_key);
   
     ----------------------------------------------------------------
-    -- Projekt beszúrása, task_seq_name eltárolása
+    -- Projekt beszÃºrÃ¡sa, task_seq_name eltÃ¡rolÃ¡sa
     ----------------------------------------------------------------
     INSERT INTO app_project
       (project_name
@@ -53,7 +53,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
     RETURNING id INTO p_project_id;
   
     ----------------------------------------------------------------
-    -- A projekt saját task sequence-ének létrehozása
+    -- A projekt sajÃ¡t task sequence-Ã©nek lÃ©trehozÃ¡sa
     ----------------------------------------------------------------
     BEGIN
       EXECUTE IMMEDIATE 'CREATE SEQUENCE ' || l_seq_name ||
@@ -77,7 +77,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
                             p_procedure_name => 'create_project_prc',
                             p_error_code     => -20341,
-                            p_error_msg      => 'Projekt kulcs ütközik (PROJ_KEY).',
+                            p_error_msg      => 'Projekt kulcs Ã¼tkÃ¶zik (PROJ_KEY).',
                             p_context        => 'proj_key=' || p_proj_key,
                             p_api            => NULL);
       RAISE pkg_exceptions.project_key_duplicate;
@@ -112,7 +112,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
                             p_procedure_name => 'assign_user_to_project_prc',
                             p_error_code     => -20343,
-                            p_error_msg      => 'User már tagja ennek a projektnek.',
+                            p_error_msg      => 'User mÃ¡r tagja ennek a projektnek.',
                             p_context        => 'project_id=' ||
                                                 p_project_id || '; user_id=' ||
                                                 p_user_id,
