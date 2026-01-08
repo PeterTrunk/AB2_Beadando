@@ -1,0 +1,4 @@
+# SQL Backup és ideiglenes fileok.
+*.~sql
+*.~tst
+*.~prc
