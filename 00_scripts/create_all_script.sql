@@ -1418,7 +1418,7 @@ CREATE OR REPLACE PACKAGE BODY err_log_pkg IS
       ,substr(p_error_msg, 1, 4000) -- Biztonság kedvéért vágjuk le hogy biztosan le legyen tultöltés
       ,substr(p_context, 1, 4000)
       ,p_api);
-  
+    Commit;
   EXCEPTION
     WHEN OTHERS THEN
       NULL;

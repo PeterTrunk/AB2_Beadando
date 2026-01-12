@@ -1,4 +1,4 @@
-CREATE OR REPLACE PACKAGE BODY err_log_pkg IS
+ï»¿CREATE OR REPLACE PACKAGE BODY err_log_pkg IS
 
   PROCEDURE log_error(p_module_name    IN app_error_log.module_name%TYPE
                      ,p_procedure_name IN app_error_log.procedure_name%TYPE
@@ -26,10 +26,11 @@ CREATE OR REPLACE PACKAGE BODY err_log_pkg IS
       ,p_module_name
       ,p_procedure_name
       ,p_error_code
-      ,substr(p_error_msg, 1, 4000) -- Biztonság kedvéért vágjuk le hogy biztosan le legyen tultöltés
+      ,substr(p_error_msg, 1, 4000) -- BiztonsÃ¡g kedvÃ©Ã©rt vÃ¡gjuk le hogy biztosan le legyen tultÃ¶ltÃ©s
       ,substr(p_context, 1, 4000)
       ,p_api);
-  
+    
+    Commit;
   EXCEPTION
     WHEN OTHERS THEN
       NULL;
