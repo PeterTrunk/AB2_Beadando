@@ -1,4 +1,4 @@
-Ôªø
+
 
 
 -- create_all_tables_script.sql
@@ -60,13 +60,13 @@ ALTER TABLE app_user
 CREATE SEQUENCE app_user_seq START WITH 100;
 
 COMMENT ON TABLE app_user IS
-  'Felhaszn√°l√≥i t√°bla: bejelentkez√©si adatok, alap profil inform√°ci√≥k.';
+  'Felhaszn·lÛi t·bla: bejelentkezÈsi adatok, alap profil inform·ciÛk.';
 
-COMMENT ON COLUMN app_user.id IS 'Egyedi felhaszn√°l√≥ azonos√≠t√≥.';
-COMMENT ON COLUMN app_user.email IS 'E-mail c√≠m, egyedi, bel√©p√©shez haszn√°lt.';
-COMMENT ON COLUMN app_user.display_name IS 'Felhaszn√°l√≥ megjelen√≠tett neve.';
-COMMENT ON COLUMN app_user.password_hash IS 'Titkos√≠tott jelsz√≥.';
-COMMENT ON COLUMN app_user.is_active IS 'Aktivit√°si st√°tusz.';
+COMMENT ON COLUMN app_user.id IS 'Egyedi felhaszn·lÛ azonosÌtÛ.';
+COMMENT ON COLUMN app_user.email IS 'E-mail cÌm, egyedi, belÈpÈshez haszn·lt.';
+COMMENT ON COLUMN app_user.display_name IS 'Felhaszn·lÛ megjelenÌtett neve.';
+COMMENT ON COLUMN app_user.password_hash IS 'TitkosÌtott jelszÛ.';
+COMMENT ON COLUMN app_user.is_active IS 'Aktivit·si st·tusz.';
 
 CREATE TABLE app_role(
   id           NUMBER         NOT NULL
@@ -82,9 +82,9 @@ ALTER TABLE app_role
 CREATE SEQUENCE app_role_seq START WITH 1;
 
 COMMENT ON TABLE app_role IS
-  'Felhaszn√°l√≥i szerepk√∂r√∂k (jogk√∂r√∂k csoportos√≠t√°sa).';
+  'Felhaszn·lÛi szerepkˆrˆk (jogkˆrˆk csoportosÌt·sa).';
 
-COMMENT ON COLUMN app_role.role_name IS 'Szerepk√∂r neve, egyedi.';
+COMMENT ON COLUMN app_role.role_name IS 'Szerepkˆr neve, egyedi.';
 
 CREATE TABLE app_project(
   id              NUMBER          PRIMARY KEY
@@ -104,10 +104,10 @@ ALTER TABLE app_project
 CREATE SEQUENCE app_project_seq START WITH 1;
 
 COMMENT ON TABLE app_project IS
-  'Projekt entit√°s: feladatok √©s boardok szervez√©se.';
+  'Projekt entit·s: feladatok Ès boardok szervezÈse.';
 
-COMMENT ON COLUMN app_project.proj_key IS 'Projekt kulcs, pl: PMA, amelyb≈ël a task azonos√≠t√≥k k√©pz≈ëdnek. (pl: PMA-100)';
-COMMENT ON COLUMN app_project.is_archived IS 'Archiv√°lt-e a projekt, akkor amikor v√©ge van.';
+COMMENT ON COLUMN app_project.proj_key IS 'Projekt kulcs, pl: PMA, amelybıl a task azonosÌtÛk kÈpzıdnek. (pl: PMA-100)';
+COMMENT ON COLUMN app_project.is_archived IS 'Archiv·lt-e a projekt, akkor amikor vÈge van.';
 
 CREATE TABLE app_user_role(
   user_id      NUMBER
@@ -124,7 +124,7 @@ ALTER TABLE app_user_role
 CREATE SEQUENCE app_user_role_seq START WITH 1;
 
 COMMENT ON TABLE app_user_role IS
-  'Felhaszn√°l√≥ - szerepk√∂r hozz√°rendel√©sek.';
+  'Felhaszn·lÛ - szerepkˆr hozz·rendelÈsek.';
 
 CREATE TABLE project_member(
   project_id    NUMBER        NOT NULL
@@ -140,9 +140,9 @@ ALTER TABLE project_member
       CONSTRAINT fk_project_member_user FOREIGN KEY (user_id) REFERENCES app_user(id));
 
 COMMENT ON TABLE project_member IS
-  'Projekt - felhaszn√°l√≥ hozz√°rendel√©sek a csapattags√°g kezel√©s√©hez.';
+  'Projekt - felhaszn·lÛ hozz·rendelÈsek a csapattags·g kezelÈsÈhez.';
 
-COMMENT ON COLUMN project_member.project_role IS 'Felhaszn√°l√≥ projektbeli szerepe (pl. fejleszt≈ë, reviewer, projekt manager, stb).';
+COMMENT ON COLUMN project_member.project_role IS 'Felhaszn·lÛ projektbeli szerepe (pl. fejlesztı, reviewer, projekt manager, stb).';
 
 CREATE TABLE app_activity(
   id            NUMBER        NOT NULL
@@ -164,13 +164,13 @@ ALTER TABLE app_activity
 CREATE SEQUENCE app_activity_seq START WITH 1;
 
 COMMENT ON TABLE app_activity IS
-  'Felhaszn√°l√≥i esem√©nyek napl√≥z√°sa: KI MIT, MIKOR, MIT m√≥dos√≠tott / hozz√°adott / l√©trehozott. 
-  Olyan napl√≥ amit a felhaszn√°l√≥k is l√°tnak a UI-on, 
-  hogy tudj√°k hogy milyen esem√©nyek t√∂rt√©ntek a k√∂zelmultban.';
+  'Felhaszn·lÛi esemÈnyek naplÛz·sa: KI MIT, MIKOR, MIT mÛdosÌtott / hozz·adott / lÈtrehozott. 
+  Olyan naplÛ amit a felhaszn·lÛk is l·tnak a UI-on, 
+  hogy tudj·k hogy milyen esemÈnyek tˆrtÈntek a kˆzelmultban.';
 
-COMMENT ON COLUMN app_activity.entity_type IS '√ârintett entit√°s t√≠pusa (TASK, COMMENT, PR, stb).';
-COMMENT ON COLUMN app_activity.entity_id IS '√ârintett entit√°s azonos√≠t√≥ja.';
-COMMENT ON COLUMN app_activity.action IS 'A v√©grehajtott m≈±velet.';
+COMMENT ON COLUMN app_activity.entity_type IS '…rintett entit·s tÌpusa (TASK, COMMENT, PR, stb).';
+COMMENT ON COLUMN app_activity.entity_id IS '…rintett entit·s azonosÌtÛja.';
+COMMENT ON COLUMN app_activity.action IS 'A vÈgrehajtott m˚velet.';
 
 CREATE TABLE labels(
   id          NUMBER        NOT NULL
@@ -187,10 +187,10 @@ ALTER TABLE labels
 CREATE SEQUENCE labels_seq START WITH 1;
 
 COMMENT ON TABLE labels IS
-  'Feladatok kategoriz√°l√°s√°ra szolg√°l√≥ c√≠mk√©k egy projekten bel√ºl.';
+  'Feladatok kategoriz·l·s·ra szolg·lÛ cÌmkÈk egy projekten bel¸l.';
 
 COMMENT ON COLUMN labels.color IS
-  'C√≠mke sz√≠ne hex form√°tumban (#RRGGBB).';
+  'CÌmke szÌne hex form·tumban (#RRGGBB).';
 
 CREATE TABLE board(
   id            NUMBER        NOT NULL
@@ -212,15 +212,15 @@ ALTER TABLE board
 CREATE SEQUENCE board_seq START WITH 1;
 
 COMMENT ON TABLE board IS
-  'Kanban board, amely egy projekt oszlopait √©s vizu√°lis fel√©p√≠t√©s√©t adja.';
+  'Kanban board, amely egy projekt oszlopait Ès vizu·lis felÈpÌtÈsÈt adja.';
   
 CREATE TABLE task_status (
   id          NUMBER        NOT NULL,
   code        VARCHAR2(32)  NOT NULL,    -- pl. 'INBACKLOG' 'TODO', 'WIP', 'REVIEW', 'DONE'
   name        VARCHAR2(64)  NOT NULL,    -- pl. 'In Backlog' 'To-Do', 'Work in progress'
   description VARCHAR2(512),
-  is_final    NUMBER(1)     DEFAULT 0 NOT NULL,  -- 0 = nem lez√°rt, 1 = lez√°rt
-  position    NUMBER        NOT NULL            -- sorrend riportokhoz / list√°khoz
+  is_final    NUMBER(1)     DEFAULT 0 NOT NULL,  -- 0 = nem lez·rt, 1 = lez·rt
+  position    NUMBER        NOT NULL            -- sorrend riportokhoz / list·khoz
 )
 TABLESPACE users;
 
@@ -253,7 +253,7 @@ ALTER TABLE integration
 CREATE SEQUENCE integration_seq START WITH 1;
 
 COMMENT ON TABLE integration IS
-  'Projekt - k√ºls≈ë rendszer (GitHub, GitLab) integr√°ci√≥ be√°ll√≠t√°sai.';
+  'Projekt - k¸lsı rendszer (GitHub, GitLab) integr·ciÛ be·llÌt·sai.';
   
 CREATE TABLE column_def(
   id                NUMBER        NOT NULL
@@ -279,7 +279,7 @@ ALTER TABLE column_def
 CREATE SEQUENCE column_def_seq START WITH 1;
 
 COMMENT ON TABLE column_def IS
-  'Board oszlopok defin√≠ci√≥ja, WIP limitek, poz√≠ci√≥ √©s kapcsolt st√°tusz.';
+  'Board oszlopok definÌciÛja, WIP limitek, pozÌciÛ Ès kapcsolt st·tusz.';
 
 CREATE TABLE sprint(
   id            NUMBER        NOT NULL
@@ -304,7 +304,7 @@ ALTER TABLE sprint
 CREATE SEQUENCE sprint_seq START WITH 1;
 
 COMMENT ON TABLE sprint IS
-  'Id≈ëszakos fejleszt√©si ciklus (Scrum sprint), st√°tuszkezel√©ssel.';
+  'Idıszakos fejlesztÈsi ciklus (Scrum sprint), st·tuszkezelÈssel.';
 
 CREATE TABLE task(
   id              NUMBER        NOT NULL
@@ -348,11 +348,11 @@ ALTER TABLE task
 CREATE SEQUENCE task_seq START WITH 100;
  
 COMMENT ON TABLE task IS
-  'Feladat (issue, user story, bug): scrum/kaban projekt alap egys√©ge.';
+  'Feladat (issue, user story, bug): scrum/kaban projekt alap egysÈge.';
 
 COMMENT ON COLUMN task.task_key IS 'Feladat kulcs (pl. PMA-12).';
-COMMENT ON COLUMN task.created_by IS 'L√©trehoz√≥ felhaszn√°l√≥ azonos√≠t√≥ja.';
-COMMENT ON COLUMN task.closed_at IS 'Lez√°r√°s id≈ëpontja, ha van.';
+COMMENT ON COLUMN task.created_by IS 'LÈtrehozÛ felhaszn·lÛ azonosÌtÛja.';
+COMMENT ON COLUMN task.closed_at IS 'Lez·r·s idıpontja, ha van.';
 
 CREATE TABLE task_assignment(
   task_id       NUMBER  NOT NULL
@@ -367,7 +367,7 @@ ALTER TABLE task_assignment
       CONSTRAINT fk_task_assignment_user FOREIGN KEY (user_id) REFERENCES app_user(id));
 
 COMMENT ON TABLE task_assignment IS
-  'Feladat - felel≈ës hozz√°rendel√©se, semennyi vagy t√∂bb assignee.';
+  'Feladat - felelıs hozz·rendelÈse, semennyi vagy tˆbb assignee.';
 
 CREATE TABLE label_task(
   task_id    NUMBER   NOT NULL
@@ -381,7 +381,7 @@ ALTER TABLE label_task
       CONSTRAINT fk_label_task_task_id FOREIGN KEY (task_id) REFERENCES task(id));
 
 COMMENT ON TABLE label_task IS
-  'Task - Label kapcsol√≥t√°bla: c√≠mk√©k hozz√°rendel√©se feladatokhoz.';
+  'Task - Label kapcsolÛt·bla: cÌmkÈk hozz·rendelÈse feladatokhoz.';
 
 
 CREATE TABLE app_comment(
@@ -424,8 +424,8 @@ ALTER TABLE commit_link
 CREATE SEQUENCE commit_link_seq START WITH 1;
 
 COMMENT ON TABLE commit_link IS
-  'Commit hivatkoz√°sok (repo, provider, SHA) taskokhoz kapcsolva. 
-  pl: Ha egy taskhoz kapcsol√≥d√≥ commit j√∂tt egy taskra, akkor az megjelenjen a task-n√°l';
+  'Commit hivatkoz·sok (repo, provider, SHA) taskokhoz kapcsolva. 
+  pl: Ha egy taskhoz kapcsolÛdÛ commit jˆtt egy taskra, akkor az megjelenjen a task-n·l';
 
 CREATE TABLE pr_link(
   id                NUMBER          NOT NULL
@@ -450,8 +450,8 @@ ALTER TABLE pr_link
 CREATE SEQUENCE pr_link_seq START WITH 100;
 
 COMMENT ON TABLE pr_link IS
-  'Pull Request hivatkoz√°sok taskokhoz, √°llapot √©s metaadatok.
-  A commit-hoz hasonl√≥an megjelenik a taskn√°l egy pr, √©s annak status-√°t is jelezve';
+  'Pull Request hivatkoz·sok taskokhoz, ·llapot Ès metaadatok.
+  A commit-hoz hasonlÛan megjelenik a taskn·l egy pr, Ès annak status-·t is jelezve';
 
 CREATE TABLE attachment(
   id                NUMBER            NOT NULL
@@ -493,7 +493,7 @@ ALTER TABLE app_error_log
 CREATE SEQUENCE app_error_log_seq START WITH 1;
 
 COMMENT ON TABLE app_error_log IS
-  'Alkalmaz√°s szint≈± hiba log t√°bla.';
+  'Alkalmaz·s szint˚ hiba log t·bla.';
 
 -- create_all_types_script.sql
 
@@ -515,7 +515,7 @@ CREATE TYPE ty_task_overview AS OBJECT
   sprint_id        NUMBER,
   sprint_name      VARCHAR2(64),
   
-  -- Aggreg√°ci√≥s mez≈ëk
+  -- Aggreg·ciÛs mezık
   assignees_text VARCHAR2(400),
   attachment_count NUMBER,
   attachment_types VARCHAR2(200),
@@ -558,19 +558,19 @@ CREATE OR REPLACE TYPE ty_board_overview AS OBJECT
 -- create_all_packages_functions_procedures.sql
 
 CREATE OR REPLACE PACKAGE audit_util_pkg IS 
-  --Els≈ë Visszajelz√©s Ut√°ni jav√≠t√°s (PKG -ekbe szervez√©s)
+  --Elsı VisszajelzÈs Ut·ni javÌt·s (PKG -ekbe szervezÈs)
  
   --------------------------------------------------------------------
-  -- AUTO ID + CREATED_AT TRIGGER L√âTREHOZ√ÅSA
-  -- Dinamikus SQL-lel l√©trehoz egy BEFORE INSERT triggert,
-  -- amely automatikusan t√∂lti az ID-t (sequence-b≈ël) √©s a CREATED_AT-et.
+  -- AUTO ID + CREATED_AT TRIGGER L…TREHOZ¡SA
+  -- Dinamikus SQL-lel lÈtrehoz egy BEFORE INSERT triggert,
+  -- amely automatikusan tˆlti az ID-t (sequence-bıl) Ès a CREATED_AT-et.
   --------------------------------------------------------------------
   PROCEDURE create_auto_id_created_trg_prc(p_table_name IN VARCHAR2);
 
   --------------------------------------------------------------------
-  -- HISTORISATION L√âTREHOZ√ÅSA
-  -- L√©trehozza az _H history t√°bl√°t + audit mez≈ëket + trigger(eke)t
-  -- a megadott alap t√°bla alapj√°n.
+  -- HISTORISATION L…TREHOZ¡SA
+  -- LÈtrehozza az _H history t·bl·t + audit mezıket + trigger(eke)t
+  -- a megadott alap t·bla alapj·n.
   --------------------------------------------------------------------
   PROCEDURE create_historisation_for_table(p_table_name IN VARCHAR2);
 
@@ -594,7 +594,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
     e_id_but_no_seq    EXCEPTION;
   BEGIN
     ------------------------------------------------------------------
-    -- 0. Bemenet valid√°l√°sa
+    -- 0. Bemenet valid·l·sa
     ------------------------------------------------------------------
     IF p_table_name IS NULL
        OR TRIM(p_table_name) IS NULL
@@ -617,7 +617,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
     END IF;
 
     ------------------------------------------------------------------
-    -- 1. Oszlopok vizsg√°lata: CREATED_AT, JOINED_AT, ID
+    -- 1. Oszlopok vizsg·lata: CREATED_AT, JOINED_AT, ID
     ------------------------------------------------------------------
     SELECT COUNT(*)
       INTO v_has_created
@@ -637,7 +637,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
      WHERE table_name = v_tab
        AND column_name = 'ID';
 
-    -- Ha van ID oszlop, legyen hozz√° <TABLE>_SEQ sequence is
+    -- Ha van ID oszlop, legyen hozz· <TABLE>_SEQ sequence is
     IF v_has_id > 0
     THEN
       SELECT COUNT(*)
@@ -652,7 +652,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
     END IF;
 
     ------------------------------------------------------------------
-    -- 2. Ha sem CREATED_AT, sem ID, sem (PROJECT_MEMBER JOINED_AT), nem csin√°lunk semmit
+    -- 2. Ha sem CREATED_AT, sem ID, sem (PROJECT_MEMBER JOINED_AT), nem csin·lunk semmit
     ------------------------------------------------------------------
     IF v_has_created = 0
        AND v_has_id = 0
@@ -662,20 +662,20 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
     END IF;
 
     ------------------------------------------------------------------
-    -- 3. Trigger sz√∂veg gener√°l√°sa
+    -- 3. Trigger szˆveg gener·l·sa
     ------------------------------------------------------------------
     v_sql := 'CREATE OR REPLACE TRIGGER ' || v_tab || '_BI_AUTO ' ||
              'BEFORE INSERT ON ' || v_tab || ' ' || 'FOR EACH ROW ' ||
              'BEGIN ';
 
-    -- CREATED_AT t√∂lt√©se, ha van ilyen oszlop
+    -- CREATED_AT tˆltÈse, ha van ilyen oszlop
     IF v_has_created > 0
     THEN
       v_sql := v_sql || 'IF :NEW.created_at IS NULL THEN ' ||
                '  :NEW.created_at := SYSDATE; ' || 'END IF; ';
     END IF;
 
-    -- PROJECT_MEMBER eset√©n a JOINED_AT-et is t√∂lts√ºk
+    -- PROJECT_MEMBER esetÈn a JOINED_AT-et is tˆlts¸k
     IF v_tab = 'PROJECT_MEMBER'
        AND v_has_joined > 0
     THEN
@@ -683,7 +683,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
                '  :NEW.joined_at := SYSDATE; ' || 'END IF; ';
     END IF;
 
-    -- ID t√∂lt√©se, ha van ID oszlop + l√©tezik <TABLE>_SEQ
+    -- ID tˆltÈse, ha van ID oszlop + lÈtezik <TABLE>_SEQ
     IF v_has_id > 0
     THEN
       v_sql := v_sql || 'IF :NEW.id IS NULL THEN ' || '  SELECT ' || v_tab ||
@@ -693,7 +693,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
     v_sql := v_sql || 'END;';
 
     ------------------------------------------------------------------
-    -- 4. Trigger l√©trehoz√°sa
+    -- 4. Trigger lÈtrehoz·sa
     ------------------------------------------------------------------
     EXECUTE IMMEDIATE v_sql;
 
@@ -728,7 +728,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
     
   PROCEDURE create_historisation_for_table(p_table_name IN VARCHAR2) IS
     v_tab VARCHAR2(30);
-    -- Max 30 karakter hossz miatt limit√°lom a bementetet.
+    -- Max 30 karakter hossz miatt limit·lom a bementetet.
     v_cnt          NUMBER;
     v_col_list     VARCHAR2(32767);
     v_new_list     VARCHAR2(32767);
@@ -740,7 +740,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
     e_table_not_exists EXCEPTION;
   BEGIN
     ----------------------------------------------------------------------------
-    -- 0. Input valid√°ci√≥ + korrekci√≥
+    -- 0. Input valid·ciÛ + korrekciÛ
     ----------------------------------------------------------------------------
     IF p_table_name IS NULL
        OR TRIM(p_table_name) IS NULL
@@ -762,7 +762,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
     END IF;
 
     ----------------------------------------------------------------------------
-    -- 1. Oszlopok hozz√°ad√°sa: MOD_USER, DML_FLAG, LAST_MODIFIED, VERSION
+    -- 1. Oszlopok hozz·ad·sa: MOD_USER, DML_FLAG, LAST_MODIFIED, VERSION
     ----------------------------------------------------------------------------
 
     -- MOD_USER
@@ -771,7 +771,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
       FROM user_tab_cols
      WHERE table_name = v_tab
        AND column_name = 'MOD_USER';
-    -- Ellen√∂rz√©s hogy l√©tezik e a hozz√°adand√≥ oszlop
+    -- EllenˆrzÈs hogy lÈtezik e a hozz·adandÛ oszlop
 
     IF v_cnt = 0
     THEN
@@ -818,8 +818,8 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
     END IF;
 
     ------------------------------------------------------------------
-    -- 2. HISTORY t√°bla l√©trehoz√°sa: <TABLE>_H
-    --    csak minden oszlop √°tm√°sol√°sa
+    -- 2. HISTORY t·bla lÈtrehoz·sa: <TABLE>_H
+    --    csak minden oszlop ·tm·sol·sa
     ------------------------------------------------------------------
 
     SELECT COUNT(*)
@@ -835,7 +835,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
     END IF;
 
     ------------------------------------------------------------------
-    -- 3. Oszloplista legener√°l√°sa a triggerekhez
+    -- 3. Oszloplista legener·l·sa a triggerekhez
     ------------------------------------------------------------------
 
     v_col_list     := NULL;
@@ -847,7 +847,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
                WHERE table_name = v_tab
                ORDER BY column_id)
     LOOP
-      -- k√∂z√∂s oszloplista
+      -- kˆzˆs oszloplista
       IF v_col_list IS NULL
       THEN
         v_col_list := c.column_name;
@@ -855,7 +855,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
         v_col_list := v_col_list || ',' || c.column_name;
       END IF;
     
-      -- INSERT/UPDATE eset√©n :NEW.<column> a DML_FLAG-et m√°r kezeltem a m√°sik triggerben.
+      -- INSERT/UPDATE esetÈn :NEW.<column> a DML_FLAG-et m·r kezeltem a m·sik triggerben.
       IF v_new_list IS NULL
       THEN
         v_new_list := ':NEW.' || c.column_name;
@@ -863,7 +863,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
         v_new_list := v_new_list || ',:NEW.' || c.column_name;
       END IF;
     
-      -- DELETE eset√©n: minden :OLD.<column>, KIV√âVE DML_FLAG = 'D'.
+      -- DELETE esetÈn: minden :OLD.<column>, KIV…VE DML_FLAG = 'D'.
       IF c.column_name = 'DML_FLAG'
       THEN
         IF v_old_del_list IS NULL
@@ -884,7 +884,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
 
     ------------------------------------------------------------------
     -- 4. BEFORE INSERT/UPDATE trigger: <TABLE>_TRG
-    --    mod_user, dml_flag, last_modified, version t√∂lt√©se
+    --    mod_user, dml_flag, last_modified, version tˆltÈse
     ------------------------------------------------------------------
 
     v_sql := 'CREATE OR REPLACE TRIGGER ' || v_tab || '_TRG ' ||
@@ -904,7 +904,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
 
     ------------------------------------------------------------------
     -- 5. AFTER INSERT/UPDATE/DELETE trigger: <TABLE>_H_TRG
-    --    history logol√°s <TABLE>_H t√°bl√°ba (dump)
+    --    history logol·s <TABLE>_H t·bl·ba (dump)
     ------------------------------------------------------------------
 
     v_sql := 'CREATE OR REPLACE TRIGGER ' || v_tab || '_H_TRG ' ||
@@ -943,7 +943,7 @@ CREATE OR REPLACE PACKAGE BODY audit_util_pkg IS
 END audit_util_pkg;
 /
 
--- automatikus id √©s created at trg-k l√©trehoz√°sa
+-- automatikus id Ès created at trg-k lÈtrehoz·sa
 
 BEGIN
   audit_util_pkg.create_auto_id_created_trg_prc('APP_USER');
@@ -966,7 +966,7 @@ BEGIN
 END;
 /
 
--- _h history t√°bl√°k l√©trehoz√°sa
+-- _h history t·bl·k lÈtrehoz·sa
 BEGIN
   audit_util_pkg.create_historisation_for_table('APP_PROJECT');
   audit_util_pkg.create_historisation_for_table('TASK');
@@ -979,7 +979,7 @@ BEGIN
   audit_util_pkg.create_historisation_for_table('PROJECT_MEMBER');
   audit_util_pkg.create_historisation_for_table('APP_USER_ROLE');
   
-  -- Els≈ë Tan√°cs k√©r√©s ut√°ni: √âszrevettem hogy m√©g lehetne t√∂bb t√°bl√°t historiz√°ci√≥val ell√°tni.
+  -- Elsı Tan·cs kÈrÈs ut·ni: …szrevettem hogy mÈg lehetne tˆbb t·bl·t historiz·ciÛval ell·tni.
   audit_util_pkg.create_historisation_for_table('APP_USER');
   audit_util_pkg.create_historisation_for_table('APP_ROLE');
   audit_util_pkg.create_historisation_for_table('LABELS');
@@ -991,18 +991,18 @@ BEGIN
 END;
 /
 
--- automatikus project key gener√°l√°s taskokhoz
+-- automatikus project key gener·l·s taskokhoz
 
 CREATE OR REPLACE PACKAGE util_pkg IS
 
   --------------------------------------------------------------------
-  -- Task sequence n√©v gener√°l√°sa PROJ_KEY alapj√°n
+  -- Task sequence nÈv gener·l·sa PROJ_KEY alapj·n
   --------------------------------------------------------------------
   FUNCTION build_task_seq_name_fnc(p_proj_key IN VARCHAR2)
     RETURN VARCHAR2;
 
   --------------------------------------------------------------------
-  -- K√∂vetkez≈ë task_key gener√°l√°sa projekt szinten
+  -- Kˆvetkezı task_key gener·l·sa projekt szinten
   --------------------------------------------------------------------
   FUNCTION build_next_task_key_fnc(p_project_id IN NUMBER)
     RETURN VARCHAR2;
@@ -1018,16 +1018,16 @@ CREATE OR REPLACE PACKAGE BODY util_pkg IS
   BEGIN
     l_base_name := upper(p_proj_key);
   
-    -- csak A‚ÄìZ, 0‚Äì9, egy√©bk√©nt cser√©lj√ºk
+    -- csak AñZ, 0ñ9, egyÈbkÈnt cserÈlj¸k
     l_base_name := regexp_replace(l_base_name, '[^A-Z0-9_]', '_');
   
-    -- ha sz√°mmal kezd≈ëdne, tegy√ºnk el√© 'P_'
+    -- ha sz·mmal kezdıdne, tegy¸nk elÈ 'P_'
     IF regexp_like(l_base_name, '^[0-9]')
     THEN
       l_base_name := 'P_' || l_base_name;
     END IF;
   
-    -- n√©v: <base>_SEQ, max 30 karakter
+    -- nÈv: <base>_SEQ, max 30 karakter
     l_seq_name := substr(l_base_name || '_SEQ', 1, 30);
   
     RETURN l_seq_name;
@@ -1039,7 +1039,7 @@ CREATE OR REPLACE PACKAGE BODY util_pkg IS
     l_next_num NUMBER;
   BEGIN
     ------------------------------------------------------------------
-    -- Projekt kulcs √©s a hozz√° tartoz√≥ sequence n√©v beolvas√°sa
+    -- Projekt kulcs Ès a hozz· tartozÛ sequence nÈv beolvas·sa
     ------------------------------------------------------------------
     SELECT proj_key
           ,task_seq_name
@@ -1049,13 +1049,13 @@ CREATE OR REPLACE PACKAGE BODY util_pkg IS
      WHERE id = p_project_id;
   
     ------------------------------------------------------------------
-    -- Ha m√©g nincs sequence n√©v elt√°rolva, gener√°ljuk √©s hozzuk l√©tre
+    -- Ha mÈg nincs sequence nÈv elt·rolva, gener·ljuk Ès hozzuk lÈtre
     ------------------------------------------------------------------
     IF l_seq_name IS NULL
     THEN
       l_seq_name := build_task_seq_name_fnc(l_proj_key);
     
-      -- pr√≥b√°ljuk l√©trehozni a sequence-et; ha m√°r l√©tezik, nem baj
+      -- prÛb·ljuk lÈtrehozni a sequence-et; ha m·r lÈtezik, nem baj
       BEGIN
         EXECUTE IMMEDIATE 'CREATE SEQUENCE ' || l_seq_name ||
                           ' START WITH 1 INCREMENT BY 1';
@@ -1067,7 +1067,7 @@ CREATE OR REPLACE PACKAGE BODY util_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- K√∂vetkez≈ë sorsz√°m lek√©r√©se a sequence-b≈ël
+    -- Kˆvetkezı sorsz·m lekÈrÈse a sequence-bıl
     ------------------------------------------------------------------
     EXECUTE IMMEDIATE 'SELECT ' || l_seq_name || '.NEXTVAL FROM dual'
       INTO l_next_num;
@@ -1094,19 +1094,19 @@ CREATE OR REPLACE TRIGGER task_status_sync_trg
 DECLARE
   l_status_id column_def.status_id%TYPE;
 BEGIN
-  -- Ha nincs column_id, nem tudunk szinkroniz√°lni
+  -- Ha nincs column_id, nem tudunk szinkroniz·lni
   IF :new.column_id IS NULL
   THEN
     RETURN;
   END IF;
 
-  -- Lek√©rj√ºk az adott oszlophoz tartoz√≥ status_id-t
+  -- LekÈrj¸k az adott oszlophoz tartozÛ status_id-t
   SELECT status_id
     INTO l_status_id
     FROM column_def
    WHERE id = :new.column_id;
 
-  -- Fel√ºl√≠rjuk a task status_id-j√°t az oszlop statusz√°val
+  -- Fel¸lÌrjuk a task status_id-j·t az oszlop statusz·val
   :new.status_id := l_status_id;
 
 EXCEPTION
@@ -1415,7 +1415,7 @@ CREATE OR REPLACE PACKAGE BODY err_log_pkg IS
       ,p_module_name
       ,p_procedure_name
       ,p_error_code
-      ,substr(p_error_msg, 1, 4000) -- Biztons√°g kedv√©√©rt v√°gjuk le hogy biztosan le legyen tult√∂lt√©s
+      ,substr(p_error_msg, 1, 4000) -- Biztons·g kedvÈÈrt v·gjuk le hogy biztosan le legyen tultˆltÈs
       ,substr(p_context, 1, 4000)
       ,p_api);
     Commit;
@@ -1438,7 +1438,7 @@ CREATE OR REPLACE PACKAGE activity_log_pkg IS
                             ,p_activity_id OUT app_activity.id%TYPE);
 
   ------------------------------------------------------------------
-  -- Proced√∫r√°k tipikus esem√©nyekre
+  -- Proced˙r·k tipikus esemÈnyekre
   ------------------------------------------------------------------
 
   PROCEDURE log_project_created_prc(p_project_id  IN app_activity.project_id%TYPE
@@ -1476,7 +1476,7 @@ END activity_log_pkg;
 
 CREATE OR REPLACE PACKAGE BODY activity_log_pkg IS
 
-  -- √Åltal√°nos logol√≥
+  -- ¡ltal·nos logolÛ
 
   PROCEDURE log_activity_prc(p_project_id  IN app_activity.project_id%TYPE
                             ,p_actor_id    IN app_activity.actor_id%TYPE
@@ -1524,7 +1524,7 @@ CREATE OR REPLACE PACKAGE BODY activity_log_pkg IS
   END log_activity_prc;
 
   ------------------------------------------------------------------
-  -- Proced√∫r√°k tipikus esem√©nyekre
+  -- Proced˙r·k tipikus esemÈnyekre
   ------------------------------------------------------------------
 
   PROCEDURE log_project_created_prc(p_project_id  IN app_activity.project_id%TYPE
@@ -1542,7 +1542,7 @@ CREATE OR REPLACE PACKAGE BODY activity_log_pkg IS
                      p_entity_type => 'PROJECT',
                      p_entity_id   => p_project_id,
                      p_action      => 'PROJECT_CREATE',
-                     p_payload     => 'Projekt l√©trehozva: ' || l_name,
+                     p_payload     => 'Projekt lÈtrehozva: ' || l_name,
                      p_activity_id => p_activity_id);
   
   EXCEPTION
@@ -1571,7 +1571,7 @@ CREATE OR REPLACE PACKAGE BODY activity_log_pkg IS
                      p_entity_type => 'TASK',
                      p_entity_id   => p_task_id,
                      p_action      => 'TASK_CREATE',
-                     p_payload     => '√öj task l√©trehozva: ' || p_task_title,
+                     p_payload     => '⁄j task lÈtrehozva: ' || p_task_title,
                      p_activity_id => p_activity_id);
   END log_task_created_prc;
 
@@ -1587,7 +1587,7 @@ CREATE OR REPLACE PACKAGE BODY activity_log_pkg IS
                      p_entity_type => 'TASK',
                      p_entity_id   => p_task_id,
                      p_action      => 'TASK_STATUS_CHANGE',
-                     p_payload     => 'Task st√°tusz: ' || p_old_status_code ||
+                     p_payload     => 'Task st·tusz: ' || p_old_status_code ||
                                       ' -> ' || p_new_status_code,
                      p_activity_id => p_activity_id);
   END log_task_status_change_prc;
@@ -1603,7 +1603,7 @@ CREATE OR REPLACE PACKAGE BODY activity_log_pkg IS
                      p_entity_type => 'COMMENT',
                      p_entity_id   => p_comment_id,
                      p_action      => 'COMMENT_ADDED',
-                     p_payload     => 'Komment hozz√°adva task_id=' ||
+                     p_payload     => 'Komment hozz·adva task_id=' ||
                                       p_task_id,
                      p_activity_id => p_activity_id);
   END log_comment_added_prc;
@@ -1620,7 +1620,7 @@ CREATE OR REPLACE PACKAGE BODY activity_log_pkg IS
                      p_entity_type => 'ATTACHMENT',
                      p_entity_id   => p_attachment_id,
                      p_action      => 'ATTACHMENT_ADDED',
-                     p_payload     => 'Attachment hozz√°adva: ' ||
+                     p_payload     => 'Attachment hozz·adva: ' ||
                                       p_file_name || ' (task_id=' ||
                                       p_task_id || ')',
                      p_activity_id => p_activity_id);
@@ -1667,7 +1667,7 @@ CREATE OR REPLACE PACKAGE BODY auth_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'AUTH',
                             p_procedure_name => 'create_role_prc',
                             p_error_code     => -20330,
-                            p_error_msg      => 'Szerepk√∂r n√©v √ºtk√∂zik (ROLE_NAME).',
+                            p_error_msg      => 'Szerepkˆr nÈv ¸tkˆzik (ROLE_NAME).',
                             p_context        => 'role_name=' || p_role_name,
                             p_api            => NULL);
       RAISE pkg_exceptions.role_name_duplicate;
@@ -1705,7 +1705,7 @@ CREATE OR REPLACE PACKAGE BODY auth_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'AUTH',
                             p_procedure_name => 'create_user_prc',
                             p_error_code     => -20332,
-                            p_error_msg      => 'Email √ºtk√∂zik (APP_USER.EMAIL).',
+                            p_error_msg      => 'Email ¸tkˆzik (APP_USER.EMAIL).',
                             p_context        => 'email=' || p_email,
                             p_api            => NULL);
       RAISE pkg_exceptions.user_email_duplicate;
@@ -1735,7 +1735,7 @@ CREATE OR REPLACE PACKAGE BODY auth_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'AUTH',
                             p_procedure_name => 'assign_role_to_user_prc',
                             p_error_code     => -20334,
-                            p_error_msg      => 'User m√°r rendelkezik ezzel a szerepk√∂rrel.',
+                            p_error_msg      => 'User m·r rendelkezik ezzel a szerepkˆrrel.',
                             p_context        => 'user_id=' || p_user_id ||
                                                 '; role_id=' || p_role_id,
                             p_api            => NULL);
@@ -1782,7 +1782,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
     l_activity_id  app_activity.id%TYPE;
   BEGIN
     ----------------------------------------------------------------
-    -- Owner user l√©tez√©s√©nek ellen≈ërz√©se
+    -- Owner user lÈtezÈsÈnek ellenırzÈse
     ----------------------------------------------------------------
     SELECT COUNT(*)
       INTO l_owner_exists
@@ -1794,7 +1794,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
                             p_procedure_name => 'create_project_prc',
                             p_error_code     => -20340,
-                            p_error_msg      => 'Owner user nem l√©tezik.',
+                            p_error_msg      => 'Owner user nem lÈtezik.',
                             p_context        => 'owner_id=' || p_owner_id ||
                                                 '; project_name=' ||
                                                 p_project_name,
@@ -1803,12 +1803,12 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
     END IF;
   
     ----------------------------------------------------------------
-    -- Sequence n√©v gener√°l√°sa a PROJ_KEY alapj√°n
+    -- Sequence nÈv gener·l·sa a PROJ_KEY alapj·n
     ----------------------------------------------------------------
     l_seq_name := util_pkg.build_task_seq_name_fnc(p_proj_key);
   
     ----------------------------------------------------------------
-    -- Projekt besz√∫r√°sa, task_seq_name elt√°rol√°sa
+    -- Projekt besz˙r·sa, task_seq_name elt·rol·sa
     ----------------------------------------------------------------
     INSERT INTO app_project
       (project_name
@@ -1825,7 +1825,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
     RETURNING id INTO p_project_id;
   
     ----------------------------------------------------------------
-    -- A projekt saj√°t task sequence-√©nek l√©trehoz√°sa
+    -- A projekt saj·t task sequence-Ènek lÈtrehoz·sa
     ----------------------------------------------------------------
     BEGIN
       EXECUTE IMMEDIATE 'CREATE SEQUENCE ' || l_seq_name ||
@@ -1849,7 +1849,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
                             p_procedure_name => 'create_project_prc',
                             p_error_code     => -20341,
-                            p_error_msg      => 'Projekt kulcs √ºtk√∂zik (PROJ_KEY).',
+                            p_error_msg      => 'Projekt kulcs ¸tkˆzik (PROJ_KEY).',
                             p_context        => 'proj_key=' || p_proj_key,
                             p_api            => NULL);
       RAISE pkg_exceptions.project_key_duplicate;
@@ -1884,7 +1884,7 @@ CREATE OR REPLACE PACKAGE BODY project_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'PROJECT',
                             p_procedure_name => 'assign_user_to_project_prc',
                             p_error_code     => -20343,
-                            p_error_msg      => 'User m√°r tagja ennek a projektnek.',
+                            p_error_msg      => 'User m·r tagja ennek a projektnek.',
                             p_context        => 'project_id=' ||
                                                 p_project_id || '; user_id=' ||
                                                 p_user_id,
@@ -1908,24 +1908,24 @@ END project_mgmt_pkg;
 
 CREATE OR REPLACE PACKAGE board_mgmt_pkg IS
 
-  -- BOARD SZINT≈∞ ELJ√ÅR√ÅSOK
+  -- BOARD SZINT€ ELJ¡R¡SOK
   
-  -- √öj board l√©trehoz√°sa egy projekthez
+  -- ⁄j board lÈtrehoz·sa egy projekthez
   PROCEDURE create_board_prc(p_project_id IN board.project_id%TYPE
                             ,p_board_name IN board.board_name%TYPE
                             ,p_is_default IN board.is_default%TYPE DEFAULT 0
                             ,p_position   IN board.position%TYPE
                             ,p_board_id   OUT board.id%TYPE);
 
-  -- Alap√©rtelmezett board be√°ll√≠t√°sa egy projekten bel√ºl
+  -- AlapÈrtelmezett board be·llÌt·sa egy projekten bel¸l
   PROCEDURE set_default_board_prc(p_project_id IN board.project_id%TYPE
                                  ,p_board_id   IN board.id%TYPE);
 
-  -- Board √°tnevez√©se
+  -- Board ·tnevezÈse
   PROCEDURE rename_board_prc(p_board_id IN board.id%TYPE
                             ,p_new_name IN board.board_name%TYPE);
 
-  -- Board sorrendj√©nek m√≥dos√≠t√°sa projekten bel√ºl
+  -- Board sorrendjÈnek mÛdosÌt·sa projekten bel¸l
   PROCEDURE reorder_board_prc(p_board_id     IN board.id%TYPE
                              ,p_new_position IN board.position%TYPE);
 
@@ -1942,7 +1942,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
     l_position    board.position%TYPE;
   BEGIN
     ------------------------------------------------------------------
-    -- Projekt l√©tez√©s√©nek ellen≈ërz√©se
+    -- Projekt lÈtezÈsÈnek ellenırzÈse
     ------------------------------------------------------------------
     SELECT COUNT(*)
       INTO l_project_cnt
@@ -1952,13 +1952,13 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
     IF l_project_cnt = 0
     THEN
       raise_application_error(-20110,
-                              'create_board_prc: a megadott projekt nem l√©tezik (project_id=' ||
+                              'create_board_prc: a megadott projekt nem lÈtezik (project_id=' ||
                               p_project_id || ').');
     END IF;
   
     ------------------------------------------------------------------
-    -- Poz√≠ci√≥ meghat√°roz√°sa
-    -- Ha p_position NULL vagy < 1  a projekt board-list√°j√°nak v√©g√©re rakjuk
+    -- PozÌciÛ meghat·roz·sa
+    -- Ha p_position NULL vagy < 1  a projekt board-list·j·nak vÈgÈre rakjuk
     ------------------------------------------------------------------
     IF p_position IS NULL
        OR p_position < 1
@@ -1972,7 +1972,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- Board besz√∫r√°sa
+    -- Board besz˙r·sa
     ------------------------------------------------------------------
     INSERT INTO board
       (project_id
@@ -1989,24 +1989,24 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
     RETURNING id INTO p_board_id;
   
     ------------------------------------------------------------------
-    -- Ha default board, akkor a t√∂bbi default flag-et levessz√ºk
+    -- Ha default board, akkor a tˆbbi default flag-et levessz¸k
     ------------------------------------------------------------------
     IF nvl(p_is_default, 0) = 1
     THEN
-      -- minden m√°s boardr√≥l levessz√ºk az is_default-ot
+      -- minden m·s boardrÛl levessz¸k az is_default-ot
       UPDATE board
          SET is_default = 0
        WHERE project_id = p_project_id
          AND id <> p_board_id;
     
-      -- biztos ami biztos, ezt az egyet 1-re tessz√ºk
+      -- biztos ami biztos, ezt az egyet 1-re tessz¸k
       UPDATE board SET is_default = 1 WHERE id = p_board_id;
     END IF;
   
   EXCEPTION
     WHEN dup_val_on_index THEN
       raise_application_error(-20111,
-                              'create_board_prc: √ºtk√∂z√©s az egyedi constrainten (val√≥sz√≠n≈±leg (project_id, board_name) vagy (project_id, position)). ' ||
+                              'create_board_prc: ¸tkˆzÈs az egyedi constrainten (valÛszÌn˚leg (project_id, board_name) vagy (project_id, position)). ' ||
                               '(project_id=' || p_project_id ||
                               ', board_name="' || p_board_name || '")');
     WHEN OTHERS THEN
@@ -2021,7 +2021,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
     l_cnt NUMBER;
   BEGIN
     ------------------------------------------------------------------
-    -- Ellen≈ërz√©s: a board t√©nyleg ehhez a projekthez tartozik?
+    -- EllenırzÈs: a board tÈnyleg ehhez a projekthez tartozik?
     ------------------------------------------------------------------
     SELECT COUNT(*)
       INTO l_cnt
@@ -2043,7 +2043,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- Minden boardot levessz√ºk default-r√≥l
+    -- Minden boardot levessz¸k default-rÛl
     ------------------------------------------------------------------
     UPDATE board
        SET is_default = 0
@@ -2051,7 +2051,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
        AND is_default = 1;
   
     ------------------------------------------------------------------
-    -- A megadott board lesz az alap√©rtelmezett
+    -- A megadott board lesz az alapÈrtelmezett
     ------------------------------------------------------------------
     UPDATE board SET is_default = 1 WHERE id = p_board_id;
   
@@ -2080,7 +2080,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'BOARD',
                             p_procedure_name => 'rename_board_prc',
                             p_error_code     => -20130,
-                            p_error_msg      => 'Nem tal√°lhat√≥ a megadott board.',
+                            p_error_msg      => 'Nem tal·lhatÛ a megadott board.',
                             p_context        => 'board_id=' || p_board_id ||
                                                 '; new_name="' || p_new_name || '"',
                             p_api            => NULL);
@@ -2092,7 +2092,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'BOARD',
                             p_procedure_name => 'rename_board_prc',
                             p_error_code     => -20131,
-                            p_error_msg      => 'M√°r l√©tezik ilyen nev≈± board ugyanabban a projektben.',
+                            p_error_msg      => 'M·r lÈtezik ilyen nev˚ board ugyanabban a projektben.',
                             p_context        => 'board_id=' || p_board_id ||
                                                 '; new_name="' || p_new_name || '"',
                             p_api            => NULL);
@@ -2121,7 +2121,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'BOARD',
                             p_procedure_name => 'reorder_board_prc',
                             p_error_code     => -20140,
-                            p_error_msg      => 'A poz√≠ci√≥ nem lehet 1-n√©l kisebb.',
+                            p_error_msg      => 'A pozÌciÛ nem lehet 1-nÈl kisebb.',
                             p_context        => 'board_id=' || p_board_id ||
                                                 '; new_position=' ||
                                                 p_new_position,
@@ -2145,18 +2145,18 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- Az azonos projekthez tartoz√≥ boardok poz√≠ci√≥inak eltol√°sa
+    -- Az azonos projekthez tartozÛ boardok pozÌciÛinak eltol·sa
     ------------------------------------------------------------------
     IF p_new_position < l_old_pos
     THEN
-      -- Felfel√© mozgatjuk: a k√∂ztes boardok lejjebb cs√∫sznak
+      -- FelfelÈ mozgatjuk: a kˆztes boardok lejjebb cs˙sznak
       UPDATE board
          SET position = position + 1
        WHERE project_id = l_project_id
          AND position >= p_new_position
          AND position < l_old_pos;
     ELSE
-      -- Lefel√© mozgatjuk: a k√∂ztes boardok feljebb cs√∫sznak
+      -- LefelÈ mozgatjuk: a kˆztes boardok feljebb cs˙sznak
       UPDATE board
          SET position = position - 1
        WHERE project_id = l_project_id
@@ -2165,7 +2165,7 @@ CREATE OR REPLACE PACKAGE BODY board_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- A kiv√°lasztott board √∫j poz√≠ci√≥ja
+    -- A kiv·lasztott board ˙j pozÌciÛja
     ------------------------------------------------------------------
     UPDATE board SET position = p_new_position WHERE id = p_board_id;
   
@@ -2189,9 +2189,9 @@ END board_mgmt_pkg;
 
 CREATE OR REPLACE PACKAGE column_mgmt_pkg IS
 
-  -- COLUMN (OSZLOP) SZINT≈∞ ELJ√ÅR√ÅSOK
+  -- COLUMN (OSZLOP) SZINT€ ELJ¡R¡SOK
   
-  -- √öj oszlop l√©trehoz√°sa egy boardon
+  -- ⁄j oszlop lÈtrehoz·sa egy boardon
   PROCEDURE create_column_prc(p_board_id    IN column_def.board_id%TYPE
                              ,p_column_name IN column_def.column_name%TYPE
                              ,p_wip_limit   IN column_def.wip_limit%TYPE
@@ -2199,12 +2199,12 @@ CREATE OR REPLACE PACKAGE column_mgmt_pkg IS
                              ,p_status_code IN task_status.code%TYPE
                              ,p_column_id   OUT column_def.id%TYPE);
 
-  -- Oszlop nev√©nek √©s WIP-limitj√©nek m√≥dos√≠t√°sa
+  -- Oszlop nevÈnek Ès WIP-limitjÈnek mÛdosÌt·sa
   PROCEDURE update_column_prc(p_column_id     IN column_def.id%TYPE
                              ,p_new_name      IN column_def.column_name%TYPE
                              ,p_new_wip_limit IN column_def.wip_limit%TYPE);
 
-  -- Oszlop sorrendj√©nek m√≥dos√≠t√°sa egy boardon bel√ºl
+  -- Oszlop sorrendjÈnek mÛdosÌt·sa egy boardon bel¸l
   PROCEDURE reorder_column_prc(p_column_id    IN column_def.id%TYPE
                               ,p_new_position IN column_def.position%TYPE);
 
@@ -2214,7 +2214,7 @@ END column_mgmt_pkg;
 CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
 
   --------------------------------------------------------------------
-  -- COLUMN ELJ√ÅR√ÅSOK
+  -- COLUMN ELJ¡R¡SOK
   --------------------------------------------------------------------
 
   PROCEDURE create_column_prc(p_board_id    IN column_def.board_id%TYPE
@@ -2226,12 +2226,12 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
     l_status_id task_status.id%TYPE;
   BEGIN
     ------------------------------------------------------------------
-    -- 1. Status ID kikeres√©se a code alapj√°n
+    -- 1. Status ID kikeresÈse a code alapj·n
     ------------------------------------------------------------------
     SELECT id INTO l_status_id FROM task_status WHERE code = p_status_code;
   
     ------------------------------------------------------------------
-    -- 2. Oszlop besz√∫r√°sa
+    -- 2. Oszlop besz˙r·sa
     ------------------------------------------------------------------
     INSERT INTO column_def
       (board_id
@@ -2264,11 +2264,11 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
       RAISE pkg_exceptions.create_column_status_not_found;
     
     WHEN dup_val_on_index THEN
-      -- (board_id, column_name) vagy (board_id, position) unique constraint s√©r√ºl
+      -- (board_id, column_name) vagy (board_id, position) unique constraint sÈr¸l
       err_log_pkg.log_error(p_module_name    => 'COLUMN',
                             p_procedure_name => 'create_column_prc',
                             p_error_code     => -20081,
-                            p_error_msg      => '√útk√∂z√©s a column_def egyedis√©g√©n (n√©v vagy poz√≠ci√≥ boardon bel√ºl).',
+                            p_error_msg      => '‹tkˆzÈs a column_def egyedisÈgÈn (nÈv vagy pozÌciÛ boardon bel¸l).',
                             p_context        => 'board_id=' || p_board_id ||
                                                 '; column_name="' ||
                                                 p_column_name || '"' ||
@@ -2308,7 +2308,7 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'COLUMN',
                             p_procedure_name => 'update_column_prc',
                             p_error_code     => -20150,
-                            p_error_msg      => 'Nem tal√°lhat√≥ a megadott column.',
+                            p_error_msg      => 'Nem tal·lhatÛ a megadott column.',
                             p_context        => 'column_id=' || p_column_id ||
                                                 '; new_name="' || p_new_name || '"' ||
                                                 '; new_wip_limit=' ||
@@ -2319,11 +2319,11 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
   
   EXCEPTION
     WHEN dup_val_on_index THEN
-      -- (board_id, column_name) vagy (board_id, position) unique megs√©rt√©se
+      -- (board_id, column_name) vagy (board_id, position) unique megsÈrtÈse
       err_log_pkg.log_error(p_module_name    => 'COLUMN',
                             p_procedure_name => 'update_column_prc',
                             p_error_code     => -20151,
-                            p_error_msg      => '√útk√∂z√©s a column egyedi constraintjeivel (n√©v vagy poz√≠ci√≥).',
+                            p_error_msg      => '‹tkˆzÈs a column egyedi constraintjeivel (nÈv vagy pozÌciÛ).',
                             p_context        => 'column_id=' || p_column_id ||
                                                 '; new_name="' || p_new_name || '"' ||
                                                 '; new_wip_limit=' ||
@@ -2347,14 +2347,14 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
   ------------------------------------------------------------------------------------------------------------------------------------
   
   --------------------------------------------------------------------
-  -- OSZLOP SORRENDEZ√âS BIZTONS√ÅGOSAN (√öJRASZ√ÅMOZ√ÅS + IDEIGLENES ELTOL√ÅS)
+  -- OSZLOP SORRENDEZ…S BIZTONS¡GOSAN (⁄JRASZ¡MOZ¡S + IDEIGLENES ELTOL¡S)
   --------------------------------------------------------------------
   PROCEDURE reorder_column_prc(p_column_id    IN column_def.id%TYPE
                               ,p_new_position IN column_def.position%TYPE) IS
     TYPE t_col_id_tab IS TABLE OF column_def.id%TYPE INDEX BY PLS_INTEGER;
 
     l_all_ids    t_col_id_tab;  -- jelenlegi sorrend
-    l_new_ids    t_col_id_tab;  -- √∫j sorrend
+    l_new_ids    t_col_id_tab;  -- ˙j sorrend
     l_board_id   column_def.board_id%TYPE;
     l_old_pos    column_def.position%TYPE;
     l_cnt        PLS_INTEGER := 0;
@@ -2364,11 +2364,11 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
   BEGIN
     IF p_new_position < 1 THEN
       raise_application_error(-20160,
-        'reorder_column_prc: a poz√≠ci√≥ nem lehet 1-n√©l kisebb.');
+        'reorder_column_prc: a pozÌciÛ nem lehet 1-nÈl kisebb.');
     END IF;
 
     ------------------------------------------------------------------
-    -- 1. A rendezend≈ë oszlop boardja √©s aktu√°lis poz√≠ci√≥ja
+    -- 1. A rendezendı oszlop boardja Ès aktu·lis pozÌciÛja
     ------------------------------------------------------------------
     SELECT board_id, position
       INTO l_board_id, l_old_pos
@@ -2380,7 +2380,7 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
     END IF;
 
     ------------------------------------------------------------------
-    -- 2. Oszlopok beolvas√°sa az adott boardr√≥l, poz√≠ci√≥ szerint
+    -- 2. Oszlopok beolvas·sa az adott boardrÛl, pozÌciÛ szerint
     ------------------------------------------------------------------
     FOR r IN (SELECT id
                 FROM column_def
@@ -2393,12 +2393,12 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
 
     IF l_cnt = 0 THEN
       raise_application_error(-20162,
-        'reorder_column_prc: nem tal√°ltam oszlopokat a boardon (board_id=' ||
+        'reorder_column_prc: nem tal·ltam oszlopokat a boardon (board_id=' ||
         l_board_id || ').');
     END IF;
 
     ------------------------------------------------------------------
-    -- 3. C√©l poz√≠ci√≥ normaliz√°l√°sa (ha nagyobb, mint elemsz√°m  lista v√©ge)
+    -- 3. CÈl pozÌciÛ normaliz·l·sa (ha nagyobb, mint elemsz·m  lista vÈge)
     ------------------------------------------------------------------
     l_target_pos := p_new_position;
     IF l_target_pos > l_cnt THEN
@@ -2406,44 +2406,44 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
     END IF;
 
     ------------------------------------------------------------------
-    -- 4. √öj sorrend fel√©p√≠t√©se mem√≥ri√°ban
+    -- 4. ⁄j sorrend felÈpÌtÈse memÛri·ban
     ------------------------------------------------------------------
     l_idx := 1;
 
     FOR i IN 1 .. l_cnt LOOP
-      -- Mozgatott oszlopot kihagyjuk az eredeti sorrendb≈ël
+      -- Mozgatott oszlopot kihagyjuk az eredeti sorrendbıl
       IF l_all_ids(i) = p_column_id THEN
         CONTINUE;
       END IF;
 
-      -- Ha a c√©lpoz√≠ci√≥hoz √©rt√ºnk, el≈ëbb a mozgatott oszlop megy
+      -- Ha a cÈlpozÌciÛhoz Èrt¸nk, elıbb a mozgatott oszlop megy
       IF l_idx = l_target_pos THEN
         l_new_ids(l_idx) := p_column_id;
         l_idx    := l_idx + 1;
         l_placed := TRUE;
       END IF;
 
-      -- Majd az aktu√°lis oszlop
+      -- Majd az aktu·lis oszlop
       l_new_ids(l_idx) := l_all_ids(i);
       l_idx := l_idx + 1;
     END LOOP;
 
-    -- Ha m√©g nem lett berakva (pl. c√©l poz√≠ci√≥ a legv√©g√©n volt)
+    -- Ha mÈg nem lett berakva (pl. cÈl pozÌciÛ a legvÈgÈn volt)
     IF NOT l_placed THEN
       l_new_ids(l_idx) := p_column_id;
       l_idx := l_idx + 1;
     END IF;
 
     ------------------------------------------------------------------
-    -- 5. IDEIGLENES ELTOL√ÅS: minden oszlop position +1000
-    --    (√≠gy azonnal megsz≈±nik a 1..N tartom√°nyban minden √ºtk√∂z√©s)
+    -- 5. IDEIGLENES ELTOL¡S: minden oszlop position +1000
+    --    (Ìgy azonnal megsz˚nik a 1..N tartom·nyban minden ¸tkˆzÈs)
     ------------------------------------------------------------------
     UPDATE column_def
        SET position = position + 1000
      WHERE board_id = l_board_id;
 
     ------------------------------------------------------------------
-    -- 6. V√©gleges 1..N poz√≠ci√≥k vissza√≠r√°sa ‚Äì itt m√°r nem tud √ºtk√∂zni
+    -- 6. VÈgleges 1..N pozÌciÛk visszaÌr·sa ñ itt m·r nem tud ¸tkˆzni
     ------------------------------------------------------------------
     FOR i IN 1 .. l_idx - 1 LOOP
       UPDATE column_def
@@ -2454,7 +2454,7 @@ CREATE OR REPLACE PACKAGE BODY column_mgmt_pkg IS
   EXCEPTION
     WHEN NO_DATA_FOUND THEN
       raise_application_error(-20163,
-        'reorder_column_prc: a megadott column_id nem tal√°lhat√≥: ' ||
+        'reorder_column_prc: a megadott column_id nem tal·lhatÛ: ' ||
         p_column_id);
 
     WHEN OTHERS THEN
@@ -2554,7 +2554,7 @@ CREATE OR REPLACE PACKAGE BODY sprint_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'SPRINT',
                             p_procedure_name => 'create_sprint_prc',
                             p_error_code     => -20362,
-                            p_error_msg      => 'Sprint l√©trehoz√°s ‚Äì egyedi constraint s√©r√ºl.',
+                            p_error_msg      => 'Sprint lÈtrehoz·s ñ egyedi constraint sÈr¸l.',
                             p_context        => 'project_id=' ||
                                                 p_project_id ||
                                                 '; board_id=' || p_board_id ||
@@ -2598,14 +2598,14 @@ CREATE OR REPLACE PACKAGE task_mgmt_pkg IS
   PROCEDURE assign_user_to_task_prc(p_task_id IN task_assignment.task_id%TYPE
                                    ,p_user_id IN task_assignment.user_id%TYPE);
 
-  -- Task √°thelyez√©se m√°sik oszlopba (ugyanazon a boardon bel√ºl),
-  -- p_new_position = NULL eset√©n az √∫j oszlop v√©g√©re ker√ºl.
+  -- Task ·thelyezÈse m·sik oszlopba (ugyanazon a boardon bel¸l),
+  -- p_new_position = NULL esetÈn az ˙j oszlop vÈgÈre ker¸l.
   PROCEDURE move_task_to_column_prc(p_task_id       IN task.id%TYPE
                                    ,p_new_column_id IN task.column_id%TYPE
                                    ,p_actor_id      IN task.created_by%TYPE
                                    ,p_new_position  IN task.position%TYPE DEFAULT NULL);
 
-  -- Task sorrendj√©nek m√≥dos√≠t√°sa az adott oszlopban
+  -- Task sorrendjÈnek mÛdosÌt·sa az adott oszlopban
   PROCEDURE reorder_task_in_column_prc(p_task_id      IN task.id%TYPE
                                       ,p_new_position IN task.position%TYPE);
 
@@ -2615,7 +2615,7 @@ END task_mgmt_pkg;
 CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
 
   --------------------------------------------------------------------
-  -- TASK L√âTREHOZ√ÅS
+  -- TASK L…TREHOZ¡S
   --------------------------------------------------------------------
   PROCEDURE create_task_prc(p_project_id    IN task.project_id%TYPE
                            ,p_board_id      IN task.board_id%TYPE
@@ -2633,12 +2633,12 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     l_position task.position%TYPE;
   BEGIN
     ------------------------------------------------------------------
-    -- 1. Task key gener√°l√°sa projekt alapj√°n (PMA-0001, DEVOPS-0001‚Ä¶)
+    -- 1. Task key gener·l·sa projekt alapj·n (PMA-0001, DEVOPS-0001Ö)
     ------------------------------------------------------------------
     l_task_key := util_pkg.build_next_task_key_fnc(p_project_id);
   
     ------------------------------------------------------------------
-    -- 2. POSITION meghat√°roz√°sa az oszlopon bel√ºl
+    -- 2. POSITION meghat·roz·sa az oszlopon bel¸l
     ------------------------------------------------------------------
     SELECT nvl(MAX(position), 0) + 1
       INTO l_position
@@ -2646,7 +2646,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
      WHERE column_id = p_column_id;
   
     ------------------------------------------------------------------
-    -- 3. Task besz√∫r√°sa
+    -- 3. Task besz˙r·sa
     ------------------------------------------------------------------
     INSERT INTO task
       (project_id
@@ -2687,18 +2687,18 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
                                         p_entity_type => 'TASK',
                                         p_entity_id   => p_task_id,
                                         p_action      => 'TASK_CREATE',
-                                        p_payload     => 'Task l√©trehozva: ' ||
+                                        p_payload     => 'Task lÈtrehozva: ' ||
                                                          p_title,
                                         p_activity_id => l_activity_id);
     END;
   
   EXCEPTION
     WHEN dup_val_on_index THEN
-      -- tipikusan TASK_KEY egyedi constraint s√©r√ºl
+      -- tipikusan TASK_KEY egyedi constraint sÈr¸l
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'create_task_prc',
                             p_error_code     => -20100,
-                            p_error_msg      => '√útk√∂z√©s az egyedi constrainten (val√≥sz√≠n≈±leg TASK_KEY).',
+                            p_error_msg      => '‹tkˆzÈs az egyedi constrainten (valÛszÌn˚leg TASK_KEY).',
                             p_context        => 'project_id=' ||
                                                 p_project_id ||
                                                 '; column_id=' ||
@@ -2723,7 +2723,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   END create_task_prc;
 
   --------------------------------------------------------------------
-  -- TASK‚ÄìUSER HOZZ√ÅRENDEL√âS
+  -- TASKñUSER HOZZ¡RENDEL…S
   --------------------------------------------------------------------
   PROCEDURE assign_user_to_task_prc(p_task_id IN task_assignment.task_id%TYPE
                                    ,p_user_id IN task_assignment.user_id%TYPE) IS
@@ -2742,7 +2742,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'assign_user_to_task_prc',
                             p_error_code     => -20110,
-                            p_error_msg      => 'A user m√°r hozz√° van rendelve ehhez a taskhoz.',
+                            p_error_msg      => 'A user m·r hozz· van rendelve ehhez a taskhoz.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; user_id=' || p_user_id,
                             p_api            => NULL);
@@ -2760,7 +2760,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   END assign_user_to_task_prc;
 
   --------------------------------------------------------------------
-  -- TASK MOZGAT√ÅS / SORRENDEZ√âS
+  -- TASK MOZGAT¡S / SORRENDEZ…S
   --------------------------------------------------------------------
   PROCEDURE move_task_to_column_prc(p_task_id       IN task.id%TYPE
                                    ,p_new_column_id IN task.column_id%TYPE
@@ -2778,7 +2778,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     l_final_position task.position%TYPE;
   BEGIN
     ------------------------------------------------------------------
-    -- 0. Poz√≠ci√≥ alap valid√°ci√≥ (ha meg van adva)
+    -- 0. PozÌciÛ alap valid·ciÛ (ha meg van adva)
     ------------------------------------------------------------------
     IF p_new_position IS NOT NULL
        AND p_new_position < 1
@@ -2786,7 +2786,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'move_task_to_column_prc',
                             p_error_code     => -20212,
-                            p_error_msg      => '√öj poz√≠ci√≥ nem lehet 1-n√©l kisebb.',
+                            p_error_msg      => '⁄j pozÌciÛ nem lehet 1-nÈl kisebb.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; new_column_id=' ||
                                                 p_new_column_id ||
@@ -2809,7 +2809,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
      WHERE id = p_task_id;
   
     ------------------------------------------------------------------
-    -- 2. Ha ugyanabba az oszlopba mozgatjuk, az csak sorrendez√©s
+    -- 2. Ha ugyanabba az oszlopba mozgatjuk, az csak sorrendezÈs
     ------------------------------------------------------------------
     IF p_new_column_id = l_old_column_id
     THEN
@@ -2823,7 +2823,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- 3. √öj oszlop adatai (board, st√°tusz, WIP limit)
+    -- 3. ⁄j oszlop adatai (board, st·tusz, WIP limit)
     ------------------------------------------------------------------
     SELECT board_id
           ,status_id
@@ -2834,13 +2834,13 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
       FROM column_def
      WHERE id = p_new_column_id;
   
-    -- Nem engedj√ºk m√°sik boardra mozgatni a taskot
+    -- Nem engedj¸k m·sik boardra mozgatni a taskot
     IF l_new_board_id <> l_old_board_id
     THEN
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'move_task_to_column_prc',
                             p_error_code     => -20210,
-                            p_error_msg      => 'Task csak ugyanazon a boardon bel√ºl mozgathat√≥.',
+                            p_error_msg      => 'Task csak ugyanazon a boardon bel¸l mozgathatÛ.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; old_board_id=' ||
                                                 l_old_board_id ||
@@ -2851,7 +2851,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- 4. WIP limit ellen≈ërz√©s az √∫j oszlopban
+    -- 4. WIP limit ellenırzÈs az ˙j oszlopban
     ------------------------------------------------------------------
     IF l_wip_limit IS NOT NULL
        AND l_wip_limit > 0
@@ -2867,7 +2867,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
         err_log_pkg.log_error(p_module_name    => 'TASK',
                               p_procedure_name => 'move_task_to_column_prc',
                               p_error_code     => -20211,
-                              p_error_msg      => 'WIP limit el√©rve az √∫j oszlopban.',
+                              p_error_msg      => 'WIP limit elÈrve az ˙j oszlopban.',
                               p_context        => 'task_id=' || p_task_id ||
                                                   '; new_column_id=' ||
                                                   p_new_column_id ||
@@ -2881,7 +2881,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- 5. R√©gi oszlop poz√≠ci√≥inak "√∂sszeh√∫z√°sa"
+    -- 5. RÈgi oszlop pozÌciÛinak "ˆsszeh˙z·sa"
     ------------------------------------------------------------------
     UPDATE task
        SET position = position - 1
@@ -2889,17 +2889,17 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
        AND position > l_old_position;
   
     ------------------------------------------------------------------
-    -- 6. √öj oszlopban v√©gs≈ë poz√≠ci√≥ meghat√°roz√°sa
+    -- 6. ⁄j oszlopban vÈgsı pozÌciÛ meghat·roz·sa
     ------------------------------------------------------------------
     IF p_new_position IS NULL
     THEN
-      -- Ha nincs megadva √∫j poz√≠ci√≥, az oszlop v√©g√©re ker√ºl
+      -- Ha nincs megadva ˙j pozÌciÛ, az oszlop vÈgÈre ker¸l
       SELECT nvl(MAX(position), 0) + 1
         INTO l_final_position
         FROM task
        WHERE column_id = p_new_column_id;
     ELSE
-      -- Hely felszabad√≠t√°sa az √∫j oszlopban a megadott poz√≠ci√≥ra
+      -- Hely felszabadÌt·sa az ˙j oszlopban a megadott pozÌciÛra
       UPDATE task
          SET position = position + 1
        WHERE column_id = p_new_column_id
@@ -2909,7 +2909,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- 7. Task friss√≠t√©se: √∫j oszlop, √∫j st√°tusz, √∫j poz√≠ci√≥
+    -- 7. Task frissÌtÈse: ˙j oszlop, ˙j st·tusz, ˙j pozÌciÛ
     ------------------------------------------------------------------
     UPDATE task
        SET column_id     = p_new_column_id
@@ -2920,8 +2920,8 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   
   EXCEPTION
     ----------------------------------------------------------------
-    -- A m√°r kor√°bban *tudatosan* dobott saj√°t exceptionjeinket
-    -- NEM csomagoljuk √∫jra, csak tov√°bbdobjuk.
+    -- A m·r kor·bban *tudatosan* dobott saj·t exceptionjeinket
+    -- NEM csomagoljuk ˙jra, csak tov·bbdobjuk.
     ----------------------------------------------------------------
     WHEN pkg_exceptions.move_task_board_mismatch
          OR pkg_exceptions.move_task_wip_exceeded
@@ -2929,13 +2929,13 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
       RAISE;
     
     ----------------------------------------------------------------
-    -- Ha maga a task vagy az oszlop hi√°nyzik
+    -- Ha maga a task vagy az oszlop hi·nyzik
     ----------------------------------------------------------------
     WHEN no_data_found THEN
       err_log_pkg.log_error(p_module_name    => 'TASK',
                             p_procedure_name => 'move_task_to_column_prc',
                             p_error_code     => -20213,
-                            p_error_msg      => 'Task vagy oszlop nem tal√°lhat√≥.',
+                            p_error_msg      => 'Task vagy oszlop nem tal·lhatÛ.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; new_column_id=' ||
                                                 p_new_column_id,
@@ -2943,7 +2943,7 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
       RAISE pkg_exceptions.move_task_not_found;
     
     ----------------------------------------------------------------
-    -- Minden m√°s hiba: √°ltal√°nos task-move hiba
+    -- Minden m·s hiba: ·ltal·nos task-move hiba
     ----------------------------------------------------------------
     WHEN OTHERS THEN
       err_log_pkg.log_error(p_module_name    => 'TASK',
@@ -2958,26 +2958,26 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   END move_task_to_column_prc;
 
   --------------------------------------------------------------------
-  -- TASK SORRENDEZ√âS OSZLOPON BEL√úL
+  -- TASK SORRENDEZ…S OSZLOPON BEL‹L
   --------------------------------------------------------------------
   --------------------------------------------------------------------
-  -- TASK sorrendez√©s oszlopon bel√ºl, egyedi (column_id, position)
-  -- constraint biztons√°gos kezel√©se mellett.
+  -- TASK sorrendezÈs oszlopon bel¸l, egyedi (column_id, position)
+  -- constraint biztons·gos kezelÈse mellett.
   --
-  -- L√©p√©sek:
-  --  1) Beolvassuk az adott oszlop √∂sszes taskj√°t poz√≠ci√≥ szerint.
-  --  2) Mem√≥ri√°ban fel√©p√≠tj√ºk az √∫j sorrendet, ahova a p_task_id
-  --     a p_new_position helyre ker√ºl.
-  --  3) Az oszlop √∂sszes taskj√°nak position √©rt√©k√©t ideiglenesen
-  --     +1000-rel eltoljuk (√≠gy nem s√©r√ºl az egyedi index).
-  --  4) Az √∫j sorrendnek megfelel≈ëen 1..N-re √∫jrasz√°mozzuk a position-t.
+  -- LÈpÈsek:
+  --  1) Beolvassuk az adott oszlop ˆsszes taskj·t pozÌciÛ szerint.
+  --  2) MemÛri·ban felÈpÌtj¸k az ˙j sorrendet, ahova a p_task_id
+  --     a p_new_position helyre ker¸l.
+  --  3) Az oszlop ˆsszes taskj·nak position ÈrtÈkÈt ideiglenesen
+  --     +1000-rel eltoljuk (Ìgy nem sÈr¸l az egyedi index).
+  --  4) Az ˙j sorrendnek megfelelıen 1..N-re ˙jrasz·mozzuk a position-t.
   --------------------------------------------------------------------
   PROCEDURE reorder_task_in_column_prc(p_task_id      IN task.id%TYPE
                                       ,p_new_position IN task.position%TYPE) IS
     TYPE t_id_tab IS TABLE OF task.id%TYPE INDEX BY PLS_INTEGER;
   
     l_all_ids    t_id_tab; -- jelenlegi sorrend
-    l_new_ids    t_id_tab; -- √∫j sorrend
+    l_new_ids    t_id_tab; -- ˙j sorrend
     l_column_id  task.column_id%TYPE;
     l_old_pos    task.position%TYPE;
     l_cnt        PLS_INTEGER := 0;
@@ -2988,11 +2988,11 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     IF p_new_position < 1
     THEN
       raise_application_error(-20220,
-                              'reorder_task_in_column_prc: a poz√≠ci√≥ nem lehet 1-n√©l kisebb.');
+                              'reorder_task_in_column_prc: a pozÌciÛ nem lehet 1-nÈl kisebb.');
     END IF;
   
     ------------------------------------------------------------------
-    -- 1. Task jelenlegi oszlopa √©s poz√≠ci√≥ja
+    -- 1. Task jelenlegi oszlopa Ès pozÌciÛja
     ------------------------------------------------------------------
     SELECT column_id
           ,position
@@ -3003,11 +3003,11 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
   
     IF p_new_position = l_old_pos
     THEN
-      RETURN; -- nincs v√°ltoz√°s
+      RETURN; -- nincs v·ltoz·s
     END IF;
   
     ------------------------------------------------------------------
-    -- 2. Az adott oszlop taskjainak beolvas√°sa, jelenlegi sorrend
+    -- 2. Az adott oszlop taskjainak beolvas·sa, jelenlegi sorrend
     ------------------------------------------------------------------
     FOR r IN (SELECT id
                 FROM task
@@ -3021,12 +3021,12 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     IF l_cnt = 0
     THEN
       raise_application_error(-20221,
-                              'reorder_task_in_column_prc: √ºres oszlop (column_id=' ||
+                              'reorder_task_in_column_prc: ¸res oszlop (column_id=' ||
                               l_column_id || ').');
     END IF;
   
     ------------------------------------------------------------------
-    -- 3. C√©lpoz√≠ci√≥ normaliz√°l√°sa
+    -- 3. CÈlpozÌciÛ normaliz·l·sa
     ------------------------------------------------------------------
     l_target_pos := p_new_position;
     IF l_target_pos > l_cnt
@@ -3035,19 +3035,19 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- 4. √öj sorrend fel√©p√≠t√©se mem√≥ri√°ban
+    -- 4. ⁄j sorrend felÈpÌtÈse memÛri·ban
     ------------------------------------------------------------------
     l_idx := 1;
   
     FOR i IN 1 .. l_cnt
     LOOP
-      -- A mozgatott taskot kihagyjuk az eredeti sorrendb≈ël
+      -- A mozgatott taskot kihagyjuk az eredeti sorrendbıl
       IF l_all_ids(i) = p_task_id
       THEN
         CONTINUE;
       END IF;
     
-      -- Ha el√©rt√ºk a c√©lpoz√≠ci√≥t, el≈ëbb a mozgatott task ker√ºl be
+      -- Ha elÈrt¸k a cÈlpozÌciÛt, elıbb a mozgatott task ker¸l be
       IF l_idx = l_target_pos
       THEN
         l_new_ids(l_idx) := p_task_id;
@@ -3055,12 +3055,12 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
         l_placed := TRUE;
       END IF;
     
-      -- Majd az aktu√°lis task
+      -- Majd az aktu·lis task
       l_new_ids(l_idx) := l_all_ids(i);
       l_idx := l_idx + 1;
     END LOOP;
   
-    -- Ha m√©g nem lett berakva (pl. c√©lpoz√≠ci√≥ a legv√©g√©n volt)
+    -- Ha mÈg nem lett berakva (pl. cÈlpozÌciÛ a legvÈgÈn volt)
     IF NOT l_placed
     THEN
       l_new_ids(l_idx) := p_task_id;
@@ -3068,27 +3068,27 @@ CREATE OR REPLACE PACKAGE BODY task_mgmt_pkg IS
     END IF;
   
     ------------------------------------------------------------------
-    -- 5. Ideiglenes eltol√°s: minden task position +1000
+    -- 5. Ideiglenes eltol·s: minden task position +1000
     ------------------------------------------------------------------
     UPDATE task
        SET position = position + 1000
      WHERE column_id = l_column_id;
   
     ------------------------------------------------------------------
-    -- 6. V√©gleges 1..N poz√≠ci√≥k vissza√≠r√°sa az √∫j sorrend alapj√°n
+    -- 6. VÈgleges 1..N pozÌciÛk visszaÌr·sa az ˙j sorrend alapj·n
     ------------------------------------------------------------------
     FOR i IN 1 .. l_idx - 1
     LOOP
       UPDATE task
          SET position      = i
-            ,last_modified = SYSDATE -- itt haszn√°ljuk a LAST_MODIFIED-et
+            ,last_modified = SYSDATE -- itt haszn·ljuk a LAST_MODIFIED-et
        WHERE id = l_new_ids(i);
     END LOOP;
   
   EXCEPTION
     WHEN no_data_found THEN
       raise_application_error(-20221,
-                              'reorder_task_in_column_prc: a megadott task nem tal√°lhat√≥.');
+                              'reorder_task_in_column_prc: a megadott task nem tal·lhatÛ.');
     WHEN OTHERS THEN
       raise_application_error(-20222,
                               'reorder_task_in_column_prc hiba (task_id=' ||
@@ -3100,7 +3100,7 @@ END task_mgmt_pkg;
 /
 -- ABXD
 CREATE OR REPLACE PACKAGE task_status_mgmt_pkg IS
-  -- ELs≈ë Visszajelz√©s ut√°ni...
+  -- ELsı VisszajelzÈs ut·ni...
 
   PROCEDURE create_task_status_prc(p_code        IN task_status.code%TYPE
                                   ,p_name        IN task_status.name%TYPE
@@ -3112,7 +3112,7 @@ CREATE OR REPLACE PACKAGE task_status_mgmt_pkg IS
 END task_status_mgmt_pkg;
 /
 CREATE OR REPLACE PACKAGE BODY task_status_mgmt_pkg IS
-  -- ELs≈ë Visszajelz√©s ut√°ni...
+  -- ELsı VisszajelzÈs ut·ni...
 
   PROCEDURE create_task_status_prc(p_code        IN task_status.code%TYPE
                                   ,p_name        IN task_status.name%TYPE
@@ -3139,7 +3139,7 @@ CREATE OR REPLACE PACKAGE BODY task_status_mgmt_pkg IS
     WHEN dup_val_on_index THEN
       raise_application_error(-20060,
                               'create_task_status_prc: status code "' ||
-                              p_code || '" m√°r l√©tezik.');
+                              p_code || '" m·r lÈtezik.');
     WHEN OTHERS THEN
       raise_application_error(-20061,
                               'create_task_status_prc hiba code = "' ||
@@ -3179,7 +3179,7 @@ CREATE OR REPLACE PACKAGE BODY label_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'LABEL',
                             p_procedure_name => 'create_label_prc',
                             p_error_code     => -20371,
-                            p_error_msg      => 'Projekt nem tal√°lhat√≥ a label l√©trehoz√°s√°hoz.',
+                            p_error_msg      => 'Projekt nem tal·lhatÛ a label lÈtrehoz·s·hoz.',
                             p_context        => 'project_id=' ||
                                                 p_project_id ||
                                                 '; label_name=' ||
@@ -3203,7 +3203,7 @@ CREATE OR REPLACE PACKAGE BODY label_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'LABEL',
                             p_procedure_name => 'create_label_prc',
                             p_error_code     => -20370,
-                            p_error_msg      => 'Label n√©v √ºtk√∂zik projekten bel√ºl.',
+                            p_error_msg      => 'Label nÈv ¸tkˆzik projekten bel¸l.',
                             p_context        => 'project_id=' ||
                                                 p_project_id ||
                                                 '; label_name=' ||
@@ -3239,7 +3239,7 @@ CREATE OR REPLACE PACKAGE BODY label_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'LABEL',
                             p_procedure_name => 'assign_label_to_task_prc',
                             p_error_code     => -20373,
-                            p_error_msg      => 'Label m√°r hozz√° van rendelve ehhez a taskhoz.',
+                            p_error_msg      => 'Label m·r hozz· van rendelve ehhez a taskhoz.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; label_id=' || p_label_id,
                             p_api            => NULL);
@@ -3285,7 +3285,7 @@ CREATE OR REPLACE PACKAGE BODY comment_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'COMMENT',
                             p_procedure_name => 'create_comment_prc',
                             p_error_code     => -20380,
-                            p_error_msg      => 'A megadott task nem l√©tezik kommenthez.',
+                            p_error_msg      => 'A megadott task nem lÈtezik kommenthez.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; user_id=' || p_user_id,
                             p_api            => NULL);
@@ -3299,7 +3299,7 @@ CREATE OR REPLACE PACKAGE BODY comment_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'COMMENT',
                             p_procedure_name => 'create_comment_prc',
                             p_error_code     => -20381,
-                            p_error_msg      => 'A megadott user nem l√©tezik kommenthez.',
+                            p_error_msg      => 'A megadott user nem lÈtezik kommenthez.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; user_id=' || p_user_id,
                             p_api            => NULL);
@@ -3378,7 +3378,7 @@ CREATE OR REPLACE PACKAGE BODY attachment_mgmt_pkg IS
     l_project_id task.project_id%TYPE;
   BEGIN
 
-    -- Task l√©tez√©s√©nek ellen≈ërz√©se
+    -- Task lÈtezÈsÈnek ellenırzÈse
     SELECT COUNT(*) INTO l_task_cnt FROM task WHERE id = p_task_id;
   
     IF l_task_cnt = 0
@@ -3386,7 +3386,7 @@ CREATE OR REPLACE PACKAGE BODY attachment_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'ATTACHMENT',
                             p_procedure_name => 'create_attachment_prc',
                             p_error_code     => -20390,
-                            p_error_msg      => 'A megadott task nem l√©tezik attachmenthez.',
+                            p_error_msg      => 'A megadott task nem lÈtezik attachmenthez.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; uploaded_by=' ||
                                                 p_uploaded_by ||
@@ -3397,7 +3397,7 @@ CREATE OR REPLACE PACKAGE BODY attachment_mgmt_pkg IS
     END IF;
   
 
-    -- User l√©tez√©s√©nek ellen≈ërz√©se
+    -- User lÈtezÈsÈnek ellenırzÈse
     SELECT COUNT(*) INTO l_user_cnt FROM app_user WHERE id = p_uploaded_by;
   
     IF l_user_cnt = 0
@@ -3405,7 +3405,7 @@ CREATE OR REPLACE PACKAGE BODY attachment_mgmt_pkg IS
       err_log_pkg.log_error(p_module_name    => 'ATTACHMENT',
                             p_procedure_name => 'create_attachment_prc',
                             p_error_code     => -20391,
-                            p_error_msg      => 'A megadott user nem l√©tezik attachmenthez.',
+                            p_error_msg      => 'A megadott user nem lÈtezik attachmenthez.',
                             p_context        => 'task_id=' || p_task_id ||
                                                 '; uploaded_by=' ||
                                                 p_uploaded_by ||
@@ -3415,7 +3415,7 @@ CREATE OR REPLACE PACKAGE BODY attachment_mgmt_pkg IS
       RAISE pkg_exceptions.attachment_user_not_found;
     END IF;
   
-    -- Attachment besz√∫r√°sa
+    -- Attachment besz˙r·sa
     INSERT INTO attachment
       (task_id
       ,uploaded_by
@@ -3504,16 +3504,16 @@ CREATE OR REPLACE PACKAGE git_integration_pkg IS
                            ,p_merged_at      IN pr_link.merged_at%TYPE);
 
   ------------------------------------------------------------------
-  --    √Åltal√°nos f√ºggv√©ny commit/PR webhook esem√©ny feldolgoz√°s√°ra
-  --    (ezt h√≠vn√° a backend webhook handler)
+  --    ¡ltal·nos f¸ggvÈny commit/PR webhook esemÈny feldolgoz·s·ra
+  --    (ezt hÌvn· a backend webhook handler)
   --
   --  - p_proj_key:  pl. 'PMA'
   --  - p_event_type: 'COMMIT' vagy 'PR'
-  --  - p_message:   commit √ºzenet / PR title+body √∂sszevonva
-  --  - commit eset√©n: p_commit_sha, p_author_email, p_committed_at
-  --  - PR eset√©n:     p_pr_number, p_state, p_created_at, p_merged_at
+  --  - p_message:   commit ¸zenet / PR title+body ˆsszevonva
+  --  - commit esetÈn: p_commit_sha, p_author_email, p_committed_at
+  --  - PR esetÈn:     p_pr_number, p_state, p_created_at, p_merged_at
   --
-  --  Visszat√©r√©s: sikeresen taskhoz k√∂t√∂tt linkek sz√°ma.
+  --  VisszatÈrÈs: sikeresen taskhoz kˆtˆtt linkek sz·ma.
   ------------------------------------------------------------------
   FUNCTION process_git_message_fnc(p_proj_key       IN app_project.proj_key%TYPE
                                   ,p_event_type     IN VARCHAR2
@@ -3687,7 +3687,7 @@ CREATE OR REPLACE PACKAGE BODY git_integration_pkg IS
   END add_pr_link_prc;
 
   ------------------------------------------------------------------
-  -- √Åltal√°nos f√ºggv√©ny commit/PR webhook esem√©nyre
+  -- ¡ltal·nos f¸ggvÈny commit/PR webhook esemÈnyre
   ------------------------------------------------------------------
 
   FUNCTION process_git_message_fnc(p_proj_key       IN app_project.proj_key%TYPE
@@ -3712,7 +3712,7 @@ CREATE OR REPLACE PACKAGE BODY git_integration_pkg IS
     l_link_count PLS_INTEGER := 0;
   
   BEGIN
-    -- Event t√≠pus valid√°l√°s
+    -- Event tÌpus valid·l·s
     IF l_event_type NOT IN ('COMMIT', 'PR')
     THEN
       err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
@@ -3725,7 +3725,7 @@ CREATE OR REPLACE PACKAGE BODY git_integration_pkg IS
       RAISE pkg_exceptions.git_invalid_event_type;
     END IF;
   
-    -- Projekt ID kikeres√©se proj_key alapj√°n
+    -- Projekt ID kikeresÈse proj_key alapj·n
     BEGIN
       SELECT id
         INTO l_project_id
@@ -3742,7 +3742,7 @@ CREATE OR REPLACE PACKAGE BODY git_integration_pkg IS
         RAISE pkg_exceptions.git_integration_not_found;
     END;
   
-    -- Task kulcsok kikeres√©se az √ºzenetb≈ël: pl. "PMA-123"
+    -- Task kulcsok kikeresÈse az ¸zenetbıl: pl. "PMA-123"
     LOOP
       l_task_key := regexp_substr(p_message,
                                   p_proj_key || '-[0-9]+',
@@ -3752,7 +3752,7 @@ CREATE OR REPLACE PACKAGE BODY git_integration_pkg IS
       EXIT WHEN l_task_key IS NULL;
       l_occurrence := l_occurrence + 1;
     
-      -- Task ID kikeres√©se a kulcs alapj√°n
+      -- Task ID kikeresÈse a kulcs alapj·n
       BEGIN
         SELECT id
           INTO l_task_id
@@ -3762,7 +3762,7 @@ CREATE OR REPLACE PACKAGE BODY git_integration_pkg IS
       
       EXCEPTION
         WHEN no_data_found THEN
-          -- Nem √°llunk le, csak logoljuk, hogy ismeretlen task key
+          -- Nem ·llunk le, csak logoljuk, hogy ismeretlen task key
           err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
                                 p_procedure_name => 'process_git_message_fnc',
                                 p_error_code     => -20321,
@@ -3777,7 +3777,7 @@ CREATE OR REPLACE PACKAGE BODY git_integration_pkg IS
           CONTINUE;
       END;
     
-      -- Link besz√∫r√°sa az esem√©ny t√≠pus√°t√≥l f√ºgg≈ëen
+      -- Link besz˙r·sa az esemÈny tÌpus·tÛl f¸ggıen
       IF l_event_type = 'COMMIT'
       THEN
         add_commit_link_prc(p_task_id        => l_task_id,
@@ -3792,7 +3792,7 @@ CREATE OR REPLACE PACKAGE BODY git_integration_pkg IS
                         p_provider       => p_provider,
                         p_repo_full_name => p_repo_full_name,
                         p_pr_number      => p_pr_number,
-                        p_title          => p_message, -- √°ltal√°ban title+body
+                        p_title          => p_message, -- ·ltal·ban title+body
                         p_state          => p_state,
                         p_created_at     => nvl(p_created_at, SYSDATE),
                         p_merged_at      => p_merged_at);
@@ -3801,7 +3801,7 @@ CREATE OR REPLACE PACKAGE BODY git_integration_pkg IS
       l_link_count := l_link_count + 1;
     END LOOP;
   
-    -- Ha v√©g√ºl egyetlen task key sem volt, dobjunk speci√°lis hib√°t
+    -- Ha vÈg¸l egyetlen task key sem volt, dobjunk speci·lis hib·t
     IF l_link_count = 0
     THEN
       err_log_pkg.log_error(p_module_name    => 'GIT_INTEGRATION',
@@ -3840,7 +3840,7 @@ END git_integration_pkg;
 /
 
 CREATE OR REPLACE PACKAGE task_autofill_pkg IS
-  -- Egyetlen backlog task beh√∫z√°sa To Do-ba (ha van hely)
+  -- Egyetlen backlog task beh˙z·sa To Do-ba (ha van hely)
   PROCEDURE fill_todo_from_backlog;
 END task_autofill_pkg;
 /
@@ -3849,14 +3849,14 @@ CREATE OR REPLACE TRIGGER task_autofill_trg
   AFTER INSERT OR UPDATE OF column_id, closed_at ON task
 DECLARE
 BEGIN
-  -- Megpr√≥b√°lunk egy feladatot √°th√∫zni Backlog - TODO
+  -- MegprÛb·lunk egy feladatot ·th˙zni Backlog - TODO
   task_autofill_pkg.fill_todo_from_backlog;
 
 EXCEPTION
   --------------------------------------------------------------------
-  -- Az ismert, domain-szint≈± hib√°kat NEM dobjuk tov√°bb,
-  -- mert az eredeti INSERT/UPDATE ett≈ël m√©g lehet sikeres.
-  -- A r√©szleteket m√°r a task_autofill_pkg + err_log_pkg logolja.
+  -- Az ismert, domain-szint˚ hib·kat NEM dobjuk tov·bb,
+  -- mert az eredeti INSERT/UPDATE ettıl mÈg lehet sikeres.
+  -- A rÈszleteket m·r a task_autofill_pkg + err_log_pkg logolja.
   --------------------------------------------------------------------
   WHEN pkg_exceptions.move_task_board_mismatch
        OR pkg_exceptions.move_task_wip_exceeded
@@ -3870,7 +3870,7 @@ END task_autofill_trg;
 
 CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
 
-  -- reentrancia-v√©delem
+  -- reentrancia-vÈdelem
   g_autofill_running BOOLEAN := FALSE;
 
   PROCEDURE fill_todo_from_backlog IS
@@ -3885,7 +3885,7 @@ CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
     l_old_backlog_pos    task.position%TYPE;
     l_new_todo_pos       task.position%TYPE;
   BEGIN
-    -- Ha m√°r futunk (m√°sik trigger h√≠v√°sb√≥l), ne induljunk √∫jra
+    -- Ha m·r futunk (m·sik trigger hÌv·sbÛl), ne induljunk ˙jra
     IF g_autofill_running THEN
       RETURN;
     END IF;
@@ -3893,16 +3893,16 @@ CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
     g_autofill_running := TRUE;
 
     ----------------------------------------------------------------
-    -- 1. Keres√ºnk EGY olyan boardot, ahol:
+    -- 1. Keres¸nk EGY olyan boardot, ahol:
     --    - van TODO oszlop wip_limit-tel,
-    --    - a TODO-ban kevesebb akt√≠v task van, mint a limit,
-    --    - √©s van BACKLOG oszlop, amiben van akt√≠v task.
+    --    - a TODO-ban kevesebb aktÌv task van, mint a limit,
+    --    - Ès van BACKLOG oszlop, amiben van aktÌv task.
     ----------------------------------------------------------------
     BEGIN
       SELECT c_todo.id,
              c_backlog.id,
              c_todo.wip_limit,
-             c_todo.status_id          -- TODO oszlop st√°tusza
+             c_todo.status_id          -- TODO oszlop st·tusza
         INTO l_todo_column_id,
              l_backlog_column_id,
              l_wip_limit,
@@ -3930,16 +3930,16 @@ CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
                 WHERE t_t.column_id = c_todo.id
                   AND t_t.closed_at IS NULL
              ) < c_todo.wip_limit
-         AND ROWNUM = 1;  -- csak EGY board/oszlopp√°r
+         AND ROWNUM = 1;  -- csak EGY board/oszlopp·r
     EXCEPTION
       WHEN NO_DATA_FOUND THEN
-        -- Nincs olyan board/oszlop, amit t√∂lteni kellene nem hiba
+        -- Nincs olyan board/oszlop, amit tˆlteni kellene nem hiba
         g_autofill_running := FALSE;
         RETURN;
     END;
 
     ----------------------------------------------------------------
-    -- 2. V√°lasszunk EGY akt√≠v taskot a backlogb√≥l
+    -- 2. V·lasszunk EGY aktÌv taskot a backlogbÛl
     --    (position, majd id szerint)
     ----------------------------------------------------------------
     BEGIN
@@ -3959,13 +3959,13 @@ CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
        WHERE ROWNUM = 1;
     EXCEPTION
       WHEN NO_DATA_FOUND THEN
-        -- K√∂zben esetleg elt≈±nt a backlog task ez sem igazi hiba
+        -- Kˆzben esetleg elt˚nt a backlog task ez sem igazi hiba
         g_autofill_running := FALSE;
         RETURN;
     END;
 
     ----------------------------------------------------------------
-    -- 3. √öj poz√≠ci√≥ meghat√°roz√°sa a TODO oszlop v√©g√©n
+    -- 3. ⁄j pozÌciÛ meghat·roz·sa a TODO oszlop vÈgÈn
     ----------------------------------------------------------------
     SELECT NVL(MAX(position), 0) + 1
       INTO l_new_todo_pos
@@ -3973,7 +3973,7 @@ CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
      WHERE column_id = l_todo_column_id;
 
     ----------------------------------------------------------------
-    -- 4. Backlog poz√≠ci√≥k "√∂sszeh√∫z√°sa" a r√©gi oszlopban
+    -- 4. Backlog pozÌciÛk "ˆsszeh˙z·sa" a rÈgi oszlopban
     ----------------------------------------------------------------
     UPDATE task
        SET position = position - 1
@@ -3981,8 +3981,8 @@ CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
        AND position > l_old_backlog_pos;
 
     ----------------------------------------------------------------
-    -- 5. A kiv√°lasztott task √°trak√°sa BACKLOG TODO
-    --    (k√∂zvetlen UPDATE, hogy ne s√©rts√ºk a unique constraintet)
+    -- 5. A kiv·lasztott task ·trak·sa BACKLOG TODO
+    --    (kˆzvetlen UPDATE, hogy ne sÈrts¸k a unique constraintet)
     ----------------------------------------------------------------
     UPDATE task
        SET column_id  = l_todo_column_id,
@@ -3991,7 +3991,7 @@ CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
            last_modified = SYSDATE
      WHERE id = l_task_to_move;
 
-    -- (Ha akarsz activity logot, IDE lehetne besz√∫rni egy logol√°st
+    -- (Ha akarsz activity logot, IDE lehetne besz˙rni egy logol·st
     --  activity_log_pkg.log_activity_prc... )
 
     g_autofill_running := FALSE;
@@ -4011,8 +4011,8 @@ CREATE OR REPLACE PACKAGE BODY task_autofill_pkg IS
         p_api            => NULL
       );
 
-      -- Dobhatunk egy √°ltal√°nos hib√°t, vagy ak√°r el is nyelhetj√ºk;
-      -- most ink√°bb jelezz√ºk kifel√© is:
+      -- Dobhatunk egy ·ltal·nos hib·t, vagy ak·r el is nyelhetj¸k;
+      -- most ink·bb jelezz¸k kifelÈ is:
       RAISE pkg_exceptions.move_task_generic;
   END fill_todo_from_backlog;
 
@@ -4030,7 +4030,7 @@ END;
 
 CREATE OR REPLACE PACKAGE board_overview_pkg IS
 
-  -- Egy board adott sprintbeli ‚Äûhierarchikus‚Äù n√©zete
+  -- Egy board adott sprintbeli Ñhierarchikusî nÈzete
   --  - csak azokat a taskokat adja vissza, amelyek:
   --      * board = p_board_id
   --      * sprint_id = p_sprint_id
@@ -4057,13 +4057,13 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
     l_sprint_project_id sprint.project_id%TYPE;
     l_sprint_board_id   sprint.board_id%TYPE;
 
-    -- Aggreg√°lt eredm√©ny
+    -- Aggreg·lt eredmÈny
     l_columns ty_column_overview_l := ty_column_overview_l();
     l_tasks   ty_task_overview_l;
 
   BEGIN
     ----------------------------------------------------------------
-    -- Board metaadatok bet√∂lt√©se
+    -- Board metaadatok betˆltÈse
     ----------------------------------------------------------------
     BEGIN
       SELECT board_name,
@@ -4087,7 +4087,7 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
     END;
 
     ----------------------------------------------------------------
-    -- Sprint metaadatok bet√∂lt√©se
+    -- Sprint metaadatok betˆltÈse
     ----------------------------------------------------------------
     BEGIN
       SELECT sprint_name,
@@ -4113,7 +4113,7 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
     END;
 
     ----------------------------------------------------------------
-    -- Board‚ÄìSprint konzisztencia ellen≈ërz√©se
+    -- BoardñSprint konzisztencia ellenırzÈse
     ----------------------------------------------------------------
     IF l_sprint_board_id   <> p_board_id
        OR l_sprint_project_id <> l_board_project_id
@@ -4134,7 +4134,7 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
     END IF;
 
     ----------------------------------------------------------------
-    -- Oszlopok bej√°r√°sa a boardon
+    -- Oszlopok bej·r·sa a boardon
     ----------------------------------------------------------------
     FOR c_rec IN (
       SELECT c.id,
@@ -4152,7 +4152,7 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
       l_tasks := ty_task_overview_l(); -- reset adott oszlophoz
 
       ----------------------------------------------------------------
-      -- Taskok beolvas√°sa az adott oszlophoz + sprinthez
+      -- Taskok beolvas·sa az adott oszlophoz + sprinthez
       ----------------------------------------------------------------
       FOR t_rec IN (
         SELECT t.id,
@@ -4255,7 +4255,7 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
       END LOOP;
 
       ----------------------------------------------------------------
-      -- Oszlop-objektum felv√©tele a list√°ba
+      -- Oszlop-objektum felvÈtele a list·ba
       ----------------------------------------------------------------
       l_columns.EXTEND;
       l_columns(l_columns.LAST) :=
@@ -4270,7 +4270,7 @@ CREATE OR REPLACE PACKAGE BODY board_overview_pkg IS
     END LOOP;
 
     ----------------------------------------------------------------
-    -- Board_overview objektum √∂ssze√°ll√≠t√°sa
+    -- Board_overview objektum ˆssze·llÌt·sa
     ----------------------------------------------------------------
     RETURN ty_board_overview(
       p_board_id,
@@ -4305,7 +4305,7 @@ END board_overview_pkg;
 -- insert_data_script.sql
 
 DECLARE
-  -- szerepk√∂r ID-k
+  -- szerepkˆr ID-k
   v_admin_role_id         app_role.id%TYPE;
   v_project_owner_role_id app_role.id%TYPE;
   v_developer_role_id     app_role.id%TYPE;
@@ -4316,43 +4316,43 @@ DECLARE
   v_dev_user_id   app_user.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- SZEREPK√ñR√ñK
+  -- SZEREPK÷R÷K
   --------------------------------------------------------------------
   auth_mgmt_pkg.create_role_prc(p_role_name   => 'ADMIN',
-                                p_description => 'Rendszeradminisztr√°tor',
+                                p_description => 'Rendszeradminisztr·tor',
                                 p_role_id     => v_admin_role_id);
 
   auth_mgmt_pkg.create_role_prc(p_role_name   => 'PROJECT_OWNER',
-                                p_description => 'Projekt tulajdonos / vezet≈ë',
+                                p_description => 'Projekt tulajdonos / vezetı',
                                 p_role_id     => v_project_owner_role_id);
 
   auth_mgmt_pkg.create_role_prc(p_role_name   => 'DEVELOPER',
-                                p_description => 'Fejleszt≈ë csapattag',
+                                p_description => 'Fejlesztı csapattag',
                                 p_role_id     => v_developer_role_id);
 
   --------------------------------------------------------------------
-  -- FELHASZN√ÅL√ìK
+  -- FELHASZN¡L”K
   --------------------------------------------------------------------
   auth_mgmt_pkg.create_user_prc(p_email         => 'admin@example.com',
-                                p_display_name  => 'Admin Felhaszn√°l√≥',
+                                p_display_name  => 'Admin Felhaszn·lÛ',
                                 p_password_hash => 'hashed_admin_pw',
                                 p_is_active     => 1,
                                 p_user_id       => v_admin_user_id);
 
   auth_mgmt_pkg.create_user_prc(p_email         => 'peter@example.com',
-                                p_display_name  => 'Trunk P√©ter',
+                                p_display_name  => 'Trunk PÈter',
                                 p_password_hash => 'hashed_peter_pw',
                                 p_is_active     => 1,
                                 p_user_id       => v_peter_user_id);
 
   auth_mgmt_pkg.create_user_prc(p_email         => 'dev@example.com',
-                                p_display_name  => 'Fejleszt≈ë B√©la',
+                                p_display_name  => 'Fejlesztı BÈla',
                                 p_password_hash => 'hashed_dev_pw',
                                 p_is_active     => 0,
                                 p_user_id       => v_dev_user_id);
 
   --------------------------------------------------------------------
-  -- FELHASZN√ÅL√ì‚ÄìSZEREPK√ñR hozz√°rendel√©sek
+  -- FELHASZN¡L”ñSZEREPK÷R hozz·rendelÈsek
   --------------------------------------------------------------------
   -- admin: ADMIN
   auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_admin_user_id,
@@ -4362,15 +4362,15 @@ BEGIN
   auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_admin_user_id,
                                         p_role_id => v_project_owner_role_id);
 
-  -- P√©ter: PROJECT_OWNER
+  -- PÈter: PROJECT_OWNER
   auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_peter_user_id,
                                         p_role_id => v_project_owner_role_id);
 
-  -- P√©ter: DEVELOPER
+  -- PÈter: DEVELOPER
   auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_peter_user_id,
                                         p_role_id => v_developer_role_id);
 
-  -- Dev B√©la: DEVELOPER
+  -- Dev BÈla: DEVELOPER
   auth_mgmt_pkg.assign_role_to_user_prc(p_user_id => v_dev_user_id,
                                         p_role_id => v_developer_role_id);
 END;
@@ -4385,7 +4385,7 @@ DECLARE
   v_dev_id   app_user.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- FELHASZN√ÅL√ì ID-K BET√ñLT√âSE
+  -- FELHASZN¡L” ID-K BET÷LT…SE
   --------------------------------------------------------------------
   SELECT id
     INTO v_admin_id
@@ -4398,39 +4398,39 @@ BEGIN
   SELECT id INTO v_dev_id FROM app_user WHERE email = 'dev@example.com';
 
   --------------------------------------------------------------------
-  -- PROJEKTEK L√âTREHOZ√ÅSA
+  -- PROJEKTEK L…TREHOZ¡SA
   --------------------------------------------------------------------
   project_mgmt_pkg.create_project_prc(p_project_name => 'PMA - Projektmenedzsment app',
                                       p_proj_key     => 'PMA',
-                                      p_description  => 'Saj√°t hosztol√°s√∫ projektmenedzsment alkalmaz√°s (kanban + statisztik√°k + Git integr√°ci√≥).',
+                                      p_description  => 'Saj·t hosztol·s˙ projektmenedzsment alkalmaz·s (kanban + statisztik·k + Git integr·ciÛ).',
                                       p_owner_id     => v_admin_id,
                                       p_project_id   => v_pma_id);
 
   project_mgmt_pkg.create_project_prc(p_project_name => 'DEVOPS - Demo projekt',
                                       p_proj_key     => 'DEVOPS',
-                                      p_description  => 'Demo projekt DevOps pipeline-ok √©s issue tracking kipr√≥b√°l√°s√°hoz.',
+                                      p_description  => 'Demo projekt DevOps pipeline-ok Ès issue tracking kiprÛb·l·s·hoz.',
                                       p_owner_id     => v_peter_id,
                                       p_project_id   => v_devops_id);
 
   --------------------------------------------------------------------
-  -- PROJEKT TAGS√ÅGOK (PROJECT_MEMBER)
+  -- PROJEKT TAGS¡GOK (PROJECT_MEMBER)
   --------------------------------------------------------------------
   -- PMA: admin = OWNER
   project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_pma_id,
                                               p_user_id      => v_admin_id,
                                               p_project_role => 'OWNER');
 
-  -- PMA: P√©ter = DEVELOPER
+  -- PMA: PÈter = DEVELOPER
   project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_pma_id,
                                               p_user_id      => v_peter_id,
                                               p_project_role => 'DEVELOPER');
 
-  -- PMA: Dev B√©la = DEVELOPER
+  -- PMA: Dev BÈla = DEVELOPER
   project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_pma_id,
                                               p_user_id      => v_dev_id,
                                               p_project_role => 'DEVELOPER');
 
-  -- DEVOPS: P√©ter = OWNER
+  -- DEVOPS: PÈter = OWNER
   project_mgmt_pkg.assign_user_to_project_prc(p_project_id   => v_devops_id,
                                               p_user_id      => v_peter_id,
                                               p_project_role => 'OWNER');
@@ -4442,7 +4442,7 @@ DECLARE
   v_pma_id    app_project.id%TYPE;
   v_devops_id app_project.id%TYPE;
 
-  -- st√°tusz ID-k
+  -- st·tusz ID-k
   v_backlog_id    task_status.id%TYPE;
   v_todo_id       task_status.id%TYPE;
   v_inprogress_id task_status.id%TYPE;
@@ -4464,35 +4464,35 @@ BEGIN
   --------------------------------------------------------------------
   task_status_mgmt_pkg.create_task_status_prc(p_code        => 'BACKLOG',
                                               p_name        => 'Backlog',
-                                              p_description => '√ñtletek, m√©g nem tervezett feladatok.',
+                                              p_description => '÷tletek, mÈg nem tervezett feladatok.',
                                               p_is_final    => 0,
                                               p_position    => 1,
                                               p_status_id   => v_backlog_id);
 
   task_status_mgmt_pkg.create_task_status_prc(p_code        => 'TODO',
                                               p_name        => 'To Do',
-                                              p_description => 'K√∂vetkez≈ë sprintben megval√≥s√≠tand√≥ feladatok.',
+                                              p_description => 'Kˆvetkezı sprintben megvalÛsÌtandÛ feladatok.',
                                               p_is_final    => 0,
                                               p_position    => 2,
                                               p_status_id   => v_todo_id);
 
-  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'IN_PROGRESS'
+  task_status_mgmt_pkg.create_task_status_prc(p_code        => 'IN_PROGRESS',
                                               p_name        => 'In Progress',
-                                              p_description => 'Folyamatban l√©v≈ë munka.',
+                                              p_description => 'Folyamatban lÈvı munka.',
                                               p_is_final    => 0,
                                               p_position    => 3,
                                               p_status_id   => v_inprogress_id);
 
   task_status_mgmt_pkg.create_task_status_prc(p_code        => 'REVIEW',
                                               p_name        => 'Review',
-                                              p_description => 'K√≥d review / tesztel√©s alatt.',
+                                              p_description => 'KÛd review / tesztelÈs alatt.',
                                               p_is_final    => 0,
                                               p_position    => 4,
                                               p_status_id   => v_review_id);
 
   task_status_mgmt_pkg.create_task_status_prc(p_code        => 'DONE',
                                               p_name        => 'Done',
-                                              p_description => 'Befejezett, lez√°rt feladatok.',
+                                              p_description => 'Befejezett, lez·rt feladatok.',
                                               p_is_final    => 1,
                                               p_position    => 5,
                                               p_status_id   => v_done_id);
@@ -4519,7 +4519,7 @@ BEGIN
                                   p_board_id   => v_devops_board_id);
 
   --------------------------------------------------------------------
-  -- 4. OSZLOPOK (column_mgmt_pkg) ‚Äì PMA Main Board
+  -- 4. OSZLOPOK (column_mgmt_pkg) ñ PMA Main Board
   --------------------------------------------------------------------
   -- BACKLOG
   column_mgmt_pkg.create_column_prc(p_board_id    => v_pma_board_id,
@@ -4582,7 +4582,7 @@ DECLARE
   v_task3_id task.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- 1. PMA projekt, board, oszlopok, user-ek, st√°tuszok bet√∂lt√©se
+  -- 1. PMA projekt, board, oszlopok, user-ek, st·tuszok betˆltÈse
   --------------------------------------------------------------------
   SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
 
@@ -4628,56 +4628,56 @@ BEGIN
   SELECT id INTO v_status_done_id FROM task_status WHERE code = 'DONE';
 
   --------------------------------------------------------------------
-  -- 2. Sprint 1 l√©trehoz√°sa ‚Äì PMA
+  -- 2. Sprint 1 lÈtrehoz·sa ñ PMA
   --------------------------------------------------------------------
   sprint_mgmt_pkg.create_sprint_prc(p_project_id  => v_pma_id,
                                     p_board_id    => v_pma_board_id,
                                     p_sprint_name => 'Sprint 1',
-                                    p_goal        => 'Alap adatb√°zis √©s backend v√°z kialak√≠t√°sa.',
+                                    p_goal        => 'Alap adatb·zis Ès backend v·z kialakÌt·sa.',
                                     p_start_date  => DATE '2025-01-01',
                                     p_end_date    => DATE '2025-01-14',
                                     p_state       => 'ACTIVE',
                                     p_sprint_id   => v_sprint1_id);
 
   --------------------------------------------------------------------
-  -- 3. TASKOK ‚Äì PMA
+  -- 3. TASKOK ñ PMA
   --------------------------------------------------------------------
-  -- 1. task ‚Äì TODO: "DB s√©ma kialak√≠t√°sa"
+  -- 1. task ñ TODO: "DB sÈma kialakÌt·sa"
   task_mgmt_pkg.create_task_prc(p_project_id    => v_pma_id,
                                 p_board_id      => v_pma_board_id,
                                 p_column_id     => v_col_todo_id,
                                 p_sprint_id     => v_sprint1_id,
                                 p_created_by    => v_peter_id,
-                                p_title         => 'DB s√©ma kialak√≠t√°sa',
-                                p_description   => 'Az alap PMA adatb√°zis t√°bl√°k √©s kapcsolatok l√©trehoz√°sa.',
+                                p_title         => 'DB sÈma kialakÌt·sa',
+                                p_description   => 'Az alap PMA adatb·zis t·bl·k Ès kapcsolatok lÈtrehoz·sa.',
                                 p_status_id     => v_status_todo_id,
                                 p_priority      => 'HIGH',
                                 p_estimated_min => 240,
                                 p_due_date      => DATE '2025-01-07',
                                 p_task_id       => v_task1_id);
 
-  -- 2. task ‚Äì IN_PROGRESS: "Historiz√°ci√≥ implement√°l√°sa"
+  -- 2. task ñ IN_PROGRESS: "Historiz·ciÛ implement·l·sa"
   task_mgmt_pkg.create_task_prc(p_project_id    => v_pma_id,
                                 p_board_id      => v_pma_board_id,
                                 p_column_id     => v_col_inprog_id,
                                 p_sprint_id     => v_sprint1_id,
                                 p_created_by    => v_dev_id,
-                                p_title         => 'Historiz√°ci√≥ implement√°l√°sa',
-                                p_description   => 'DML flag, version, history t√°bla √©s triggerek be√©p√≠t√©se a kritikus t√°bl√°kra.',
+                                p_title         => 'Historiz·ciÛ implement·l·sa',
+                                p_description   => 'DML flag, version, history t·bla Ès triggerek beÈpÌtÈse a kritikus t·bl·kra.',
                                 p_status_id     => v_status_inprog_id,
                                 p_priority      => 'MEDIUM',
                                 p_estimated_min => 180,
                                 p_due_date      => DATE '2025-01-10',
                                 p_task_id       => v_task2_id);
 
-  -- 3. task ‚Äì DONE: "Alap felhaszn√°l√≥k felv√©tele"
+  -- 3. task ñ DONE: "Alap felhaszn·lÛk felvÈtele"
   task_mgmt_pkg.create_task_prc(p_project_id    => v_pma_id,
                                 p_board_id      => v_pma_board_id,
                                 p_column_id     => v_col_done_id,
                                 p_sprint_id     => v_sprint1_id,
                                 p_created_by    => v_admin_id,
-                                p_title         => 'Alap felhaszn√°l√≥k felv√©tele',
-                                p_description   => 'Admin √©s fejleszt≈ë felhaszn√°l√≥k l√©trehoz√°sa tesztel√©shez.',
+                                p_title         => 'Alap felhaszn·lÛk felvÈtele',
+                                p_description   => 'Admin Ès fejlesztı felhaszn·lÛk lÈtrehoz·sa tesztelÈshez.',
                                 p_status_id     => v_status_done_id,
                                 p_priority      => 'LOW',
                                 p_estimated_min => 60,
@@ -4694,7 +4694,7 @@ BEGIN
    WHERE id = v_task3_id;
 
   --------------------------------------------------------------------
-  -- 4. TASK ASSIGNMENT ‚Äì hozz√°rendel√©sek
+  -- 4. TASK ASSIGNMENT ñ hozz·rendelÈsek
   --------------------------------------------------------------------
   task_mgmt_pkg.assign_user_to_task_prc(p_task_id => v_task1_id,
                                         p_user_id => v_peter_id);
@@ -4730,24 +4730,24 @@ DECLARE
   v_comment2_id app_comment.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- 1. PMA projekt, taskok √©s userek bet√∂lt√©se
+  -- 1. PMA projekt, taskok Ès userek betˆltÈse
   --------------------------------------------------------------------
   SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
 
   SELECT id
     INTO v_task_db_schema_id
     FROM task
-   WHERE title = 'DB s√©ma kialak√≠t√°sa';
+   WHERE title = 'DB sÈma kialakÌt·sa';
 
   SELECT id
     INTO v_task_hist_id
     FROM task
-   WHERE title = 'Historiz√°ci√≥ implement√°l√°sa';
+   WHERE title = 'Historiz·ciÛ implement·l·sa';
 
   SELECT id
     INTO v_task_users_id
     FROM task
-   WHERE title = 'Alap felhaszn√°l√≥k felv√©tele';
+   WHERE title = 'Alap felhaszn·lÛk felvÈtele';
 
   SELECT id
     INTO v_admin_id
@@ -4759,7 +4759,7 @@ BEGIN
    WHERE email = 'peter@example.com';
 
   --------------------------------------------------------------------
-  -- 2. LABELS ‚Äì PMA projekthez
+  -- 2. LABELS ñ PMA projekthez
   --------------------------------------------------------------------
   label_mgmt_pkg.create_label_prc(p_project_id => v_pma_id,
                                   p_label_name => 'backend',
@@ -4777,31 +4777,31 @@ BEGIN
                                   p_label_id   => v_label_bug_id);
 
   --------------------------------------------------------------------
-  -- 3. LABEL_TASK ‚Äì feladatok c√≠mk√©z√©se
+  -- 3. LABEL_TASK ñ feladatok cÌmkÈzÈse
   --------------------------------------------------------------------
-  -- DB s√©ma kialak√≠t√°sa -> backend
+  -- DB sÈma kialakÌt·sa -> backend
   label_mgmt_pkg.assign_label_to_task_prc(p_task_id  => v_task_db_schema_id,
                                           p_label_id => v_label_backend_id);
 
-  -- Historiz√°ci√≥ implement√°l√°sa -> backend
+  -- Historiz·ciÛ implement·l·sa -> backend
   label_mgmt_pkg.assign_label_to_task_prc(p_task_id  => v_task_hist_id,
                                           p_label_id => v_label_backend_id);
 
-  -- Alap felhaszn√°l√≥k felv√©tele -> bug
+  -- Alap felhaszn·lÛk felvÈtele -> bug
   label_mgmt_pkg.assign_label_to_task_prc(p_task_id  => v_task_users_id,
                                           p_label_id => v_label_bug_id);
 
   --------------------------------------------------------------------
-  -- 4. KOMMENTEK ‚Äì app_comment
+  -- 4. KOMMENTEK ñ app_comment
   --------------------------------------------------------------------
   comment_mgmt_pkg.create_comment_prc(p_task_id      => v_task_db_schema_id,
                                       p_user_id      => v_admin_id,
-                                      p_comment_body => 'K√©rlek n√©zd √°t a constraint-eket √©s a history triggert is.',
+                                      p_comment_body => 'KÈrlek nÈzd ·t a constraint-eket Ès a history triggert is.',
                                       p_comment_id   => v_comment1_id);
 
   comment_mgmt_pkg.create_comment_prc(p_task_id      => v_task_hist_id,
                                       p_user_id      => v_peter_id,
-                                      p_comment_body => 'Szerintem a D jel√∂l√©s DELETE-n√©l j√≥l m≈±k√∂dik, n√©zz√ºk meg m√©g egyszer a logot.',
+                                      p_comment_body => 'Szerintem a D jelˆlÈs DELETE-nÈl jÛl m˚kˆdik, nÈzz¸k meg mÈg egyszer a logot.',
                                       p_comment_id   => v_comment2_id);
 END;
 /
@@ -4817,19 +4817,19 @@ DECLARE
   v_attachment_id  attachment.id%TYPE;
 BEGIN
   --------------------------------------------------------------------
-  -- 1. PMA projekt, taskok, user bet√∂lt√©se
+  -- 1. PMA projekt, taskok, user betˆltÈse
   --------------------------------------------------------------------
   SELECT id INTO v_pma_id FROM app_project WHERE proj_key = 'PMA';
 
   SELECT id
     INTO v_hist_task_id
     FROM task
-   WHERE title = 'Historiz√°ci√≥ implement√°l√°sa';
+   WHERE title = 'Historiz·ciÛ implement·l·sa';
 
   SELECT id
     INTO v_db_task_id
     FROM task
-   WHERE title = 'DB s√©ma kialak√≠t√°sa';
+   WHERE title = 'DB sÈma kialakÌt·sa';
 
   SELECT id
     INTO v_peter_id
@@ -4837,7 +4837,7 @@ BEGIN
    WHERE email = 'peter@example.com';
 
   --------------------------------------------------------------------
-  -- 2. INTEGR√ÅCI√ì ‚Äì GITHUB
+  -- 2. INTEGR¡CI” ñ GITHUB
   --------------------------------------------------------------------
   git_integration_pkg.create_integration_prc(p_project_id     => v_pma_id,
                                              p_provider       => 'GITHUB',
